@@ -1,0 +1,54 @@
+---
+description: Prioritize performance, best practices, SEO, and accessibility
+alwaysApply: true
+---
+
+# Quality First
+
+Treat performance, best practices, SEO, and accessibility as first-class concerns in every change.
+
+## Performance
+
+- Prefer simple, efficient solutions over premature complexity
+- Avoid unnecessary re-renders, state updates, and effect runs
+- Keep bundles lean: no unused deps, prefer tree-shakeable imports (e.g. `lucide-react` icons individually)
+- Lazy-load heavy routes/components when they are not needed on first paint
+- Optimize images and static assets (size, format, lazy loading)
+
+## Best Practices
+
+- Follow established React / TypeScript / Vite patterns already used in the project
+- Use TypeScript (`.ts` / `.tsx`); avoid `any` unless clearly justified
+- Style with Tailwind utility classes; do not add CSS modules or CSS-in-JS
+- Prefer clear, maintainable code over clever shortcuts
+- Handle loading, empty, and error states explicitly
+- Keep components small and focused; colocate related logic
+- Do not leave dead code, unused props, or silent failures
+
+## SEO
+
+- Use semantic HTML (`main`, `nav`, `section`, `article`, headings in order)
+- Provide meaningful `title`, meta description, and Open Graph tags where relevant
+- Ensure links and routes are crawlable; prefer real URLs over JS-only navigation for key pages
+- Use descriptive alt text for meaningful images; empty alt for decorative ones
+- Avoid blocking content behind client-only rendering when it hurts discoverability
+
+## Accessibility
+
+- Keyboard navigation must work for interactive elements
+- Maintain visible focus states and sufficient color contrast
+- Associate labels with form controls; use correct ARIA only when native HTML is not enough
+- Respect `prefers-reduced-motion` for non-essential animation
+- Do not rely on color alone to convey meaning
+
+## React / Vite
+
+- Do not add `useMemo` / `useCallback` by default; only when a measured or clear re-render cost exists
+- Prefer derived state over syncing state in `useEffect`
+- Keep lists keyed stably; avoid inline object/array props that force child re-renders when it matters
+- Watch for large Redux selections; select only the slice needed
+
+## When changing code
+
+- Call out trade-offs if a change could hurt performance, SEO, or accessibility
+- Prefer fixing the root cause over layering workarounds

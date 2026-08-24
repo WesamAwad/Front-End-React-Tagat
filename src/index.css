@@ -1,0 +1,102 @@
+@import "tailwindcss";
+@import "react-international-phone/style.css";
+
+@theme {
+  /* الخط الافتراضي للمشروع */
+  --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary: #152a4e;
+  --color-primary-hover: #0d1b33;
+  --color-primary-light: #eef2f8;
+
+  --color-secondary: #f97216;
+  --color-secondary-hover: #ea580c;
+
+  --color-label: #6b7280;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+    direction: rtl;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+.react-international-phone-input-container {
+  --react-international-phone-height: 48px;
+  --react-international-phone-background-color: #fff;
+  --react-international-phone-text-color: #152a4e;
+  --react-international-phone-font-size: 1rem;
+  --react-international-phone-border-radius: 0.5rem;
+  --react-international-phone-border-color: rgb(21 42 78 / 0.15);
+  --react-international-phone-disabled-background-color: #fff;
+  --react-international-phone-selected-dropdown-item-background-color: #eef2f8;
+  --react-international-phone-country-selector-background-color: #fff;
+  --react-international-phone-country-selector-border-color: rgb(21 42 78 / 0.15);
+  --react-international-phone-country-selector-arrow-color: rgb(21 42 78 / 0.4);
+  --react-international-phone-dropdown-item-dial-code-color: #6b7280;
+  width: 100%;
+}
+
+.react-international-phone-input-container .react-international-phone-input {
+  width: 100%;
+}
+
+.react-international-phone-input-container.has-error {
+  --react-international-phone-border-color: #ef4444;
+  --react-international-phone-country-selector-border-color: #ef4444;
+}
+
+@keyframes otp-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+.otp-shake {
+  animation: otp-shake 0.45s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .otp-shake {
+    animation: none;
+  }
+}
+
+/* AIDiagnosisSection shape responsive translate */
+/* .ai-shape {
+  transform: translateX(-1.5rem);
+}
+
+@media (min-width: 1024px) and (max-width: 1115px) {
+  .ai-shape {
+    transform: translateX(-3rem);
+  }
+}
+
+@media (min-width: 1116px) {
+  .ai-shape {
+    transform: translateX(-5.2rem);
+  }
+} */
