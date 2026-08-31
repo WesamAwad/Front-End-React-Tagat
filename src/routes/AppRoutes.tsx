@@ -3,6 +3,7 @@ import RootLayout from "../layouts/RootLayout";
 import WorkshopLayout from "../layouts/WorkshopLayout";
 import HomePage from "../features/home/HomePage";
 import WorkshopsPage from "../features/workshops/WorkshopsPage";
+import DetailsWorkShop from "../features/workshops/workshopDetails/Details-WorkShop";
 import AiDiagnosisPage from "../features/ai-diagnosis/AiDiagnosisPage";
 import AboutPage from "../features/about/AboutPage";
 import ContactPage from "../features/contact/ContactPage";
@@ -15,7 +16,7 @@ import ClientSignupPage from "../features/signup/ClientSignupPage";
 import WorkshopSignupPage from "../features/signup/WorkshopSignupPage";
 import HomeWorkshopPage from "../features/dashboardWorkshop/pages/HomeWorkshopPage";
 import OrdersWorkshopPage from "../features/dashboardWorkshop/pages/OrdersWorkshopPage";
-import SparePartsWorkshopPage from "../features/dashboardWorkshop/pages/SparePartsWorkshopPage";
+import SparePartsWorkshopPage from "../features/dashboardWorkshop/spareParts/SparePartsWorkshopPage";
 import SettingsWorkshopPage from "../features/dashboardWorkshop/pages/SettingsWorkshopPage";
 import ProfilePage from "../features/dashboardWorkshop/pages/ProfilePage";
 import ErrorPage from "../components/ErrorPage";
@@ -36,6 +37,10 @@ export const router = createBrowserRouter([
       {
         path: "workshops",
         element: <WorkshopsPage />,
+      },
+      {
+        path: "workshops/:id",
+        element: <DetailsWorkShop />,
       },
       {
         path: "ai-diagnosis",

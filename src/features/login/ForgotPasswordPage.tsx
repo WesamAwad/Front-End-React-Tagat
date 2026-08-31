@@ -20,8 +20,8 @@ function ForgotPasswordPage() {
     const email = String(form.get("email") ?? "").trim();
 
     try {
-      await passwordSendCode({ email }).unwrap();
-      navigate("/reset-password", { state: { email } });
+      const result = await passwordSendCode({ email }).unwrap();
+      navigate("/reset-password", { state: { email, message: result.message ?? "" } });
     } catch (error) {
       const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
 

@@ -10,7 +10,9 @@ const OTP_LENGTH = 6;
 function ResetPasswordPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const email = (location.state as { email?: string } | null)?.email ?? "";
+  const locationState = (location.state as { email?: string; message?: string } | null) ?? null;
+  const email = locationState?.email ?? "";
+  const successMessage = locationState?.message?.trim() ?? "";
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -115,6 +117,12 @@ function ResetPasswordPage() {
         <h1 className="text-3xl font-bold text-primary">تحديث كلمة المرور</h1>
 
         <form className="mt-8 space-y-5 text-start" onSubmit={handleSubmit}>
+          {successMessage ? (
+            <p className="rounded-lg bg-emerald-50 px-4 py-3 text-center text-base font-medium text-emerald-700" role="status">
+              {successMessage}
+            </p>
+          ) : null}
+
           {errorMessage ? (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
               {errorMessage}

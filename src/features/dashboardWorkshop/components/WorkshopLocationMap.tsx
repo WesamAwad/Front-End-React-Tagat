@@ -139,7 +139,13 @@ export function WorkshopLocationMap({ latitude, longitude, onLocationChange }: W
         <div>
           <div className="flex items-center gap-2">
             <MapPin className="size-5 text-secondary" aria-hidden="true" />
-            <h3 className="text-base font-bold text-primary">موقع الورشة على الخريطة</h3>
+            <h3 className="text-base font-bold text-primary">
+              موقع الورشة على الخريطة
+              <span className="text-red-500" aria-hidden="true">
+                {" "}
+                *
+              </span>
+            </h3>
           </div>
           <p className="mt-1 text-sm text-gray-600">{statusMessage}</p>
         </div>

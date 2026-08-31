@@ -1,4 +1,5 @@
 import { Heart, MapPin, Tag } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Workshop } from "../types";
 import { StarRating } from "./StarRating";
 
@@ -62,12 +63,12 @@ export function WorkshopCard({ workshop }: WorkshopCardProps) {
           >
             احجز موعد
           </button>
-          <button
-            type="button"
-            className="flex-1 rounded-md border border-primary py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
+          <Link
+            to={`/workshops/${workshop.id}`}
+            className="flex flex-1 items-center justify-center rounded-md border border-primary py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
           >
             عرض التفاصيل
-          </button>
+          </Link>
         </div>
       </div>
     </article>
