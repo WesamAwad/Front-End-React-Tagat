@@ -10,8 +10,8 @@ export const mockWorkshops: Workshop[] = Array.from({ length: 8 }, (_, index) =>
   name: "مستشار الأجهزة للإلكترونيات",
   rating: 4.5,
   reviewCount: 89,
-  location: "حي العليا، الرياض · 4.1 كم",
-  priceRange: "100 - 300 ر.س",
+  location: "حي العليا، الرياض",
+  priceRange: "متوسط السعر 100 - 300 ر.س",
   tags: ["ضمان 6 أشهر", "اندرويد", "تابلت"],
   image: images[index % images.length],
 }));

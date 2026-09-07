@@ -1,7 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
-import { ChevronDown, ImageUp } from "lucide-react";
+import { ChevronDown, FileImage, ImageUp, Upload } from "lucide-react";
 import SuccessToast from "../../../components/SuccessToast";
-import { useGetAllCountriesQuery, useGetAllCitiesQuery, useGetAllServicesQuery, useGetShopProfileQuery, useSaveOrUpdateShopProfileMutation } from "../../auth/authApi";
+import { useGetAllCountriesQuery, useGetAllCitiesQuery, useGetAllServicesQuery, useGetShopProfileQuery, useSaveOrUpdateShopProfileMutation, useUpdateShopStatusMutation } from "../../auth/authApi";
 import type { AuthValidationErrorResponse } from "../../../types/authTypes";
 import { useWorkshopOwnerSession } from "../hooks/useWorkshopOwnerSession";
 import { buildWorkingHoursPayload, emptyWorkshopProfileForm, emptyWorkingHours, workingDays, workingHoursFromPayload, type WorkingDayKey, type WorkingHoursState } from "../types/workshopProfile";
@@ -11,6 +11,7 @@ const emptyFieldErrors = {
   shop_name: "",
   description: "",
   cover_image: "",
+  commercial_record_image: "",
   country_id: "",
   city_id: "",
   district: "",
@@ -18,10 +19,18 @@ const emptyFieldErrors = {
   latitude: "",
   longitude: "",
   working_hours: "",
-  service_ids: "",
+  services: "",
 };
 
 type ProfileFieldErrorKey = keyof typeof emptyFieldErrors;
+
+function getServicesError(errors: Record<string, string[]> | undefined) {
+  if (!errors) return "";
+  if (errors.services?.[0]) return errors.services[0];
+
+  const nestedEntry = Object.entries(errors).find(([errorKey]) => errorKey.startsWith("services."));
+  return nestedEntry?.[1]?.[0] ?? "";
+}
 
 function getFieldError(errors: Record<string, string[]> | undefined, key: ProfileFieldErrorKey) {
   if (!errors) return "";
@@ -52,19 +61,26 @@ function ProfilePage() {
   const [values, setValues] = useState(emptyWorkshopProfileForm);
   const [workingHours, setWorkingHours] = useState<WorkingHoursState>(emptyWorkingHours);
   const [selectedServices, setSelectedServices] = useState<Array<string | number>>([]);
+  const [servicePrices, setServicePrices] = useState<Record<string, string>>({});
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverImageName, setCoverImageName] = useState("");
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [coverCacheKey, setCoverCacheKey] = useState(0);
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [licenseFileName, setLicenseFileName] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldErrors, setFieldErrors] = useState(emptyFieldErrors);
   const [mapSessionKey, setMapSessionKey] = useState(0);
+  const [statusError, setStatusError] = useState("");
   const hasHydratedProfile = useRef(false);
 
   const { data: profileData, isLoading: isProfileLoading, isError: isProfileError } = useGetShopProfileQuery();
   const [saveOrUpdateShopProfile, { isLoading: isSaving }] = useSaveOrUpdateShopProfileMutation();
+  const [updateShopStatus, { isLoading: isUpdatingStatus }] = useUpdateShopStatusMutation();
+  const shopId = profileData?.data?.id ?? "";
+  const isShopOpen = (profileData?.data?.status ?? "open") === "open";
 
   const applyCoverImage = (coverUrl: string | null) => {
     setCoverImageFile(null);
@@ -100,8 +116,11 @@ function ProfilePage() {
       longitude: profile.longitude,
     });
     setWorkingHours(workingHoursFromPayload(profile.working_hours));
-    setSelectedServices(profile.service_ids.map(String));
+    setSelectedServices(profile.services.map((service) => String(service.service_id)));
+    setServicePrices(Object.fromEntries(profile.services.map((service) => [String(service.service_id), String(service.price)])));
     applyCoverImage(profile.cover_image);
+    setLicenseFile(null);
+    setLicenseFileName(profile.commercial_record_image ? "مستند الترخيص الحالي" : "");
     setMapSessionKey((current) => current + 1);
   }, [profileData]);
 
@@ -160,6 +179,15 @@ function ProfilePage() {
     setCoverCacheKey(0);
   };
 
+  const handleLicenseFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setLicenseFile(file);
+    setLicenseFileName(file ? file.name : "");
+    clearFieldError("commercial_record_image");
+    setSavedMessage("");
+    setErrorMessage("");
+  };
+
   const handleLocationChange = (latitude: string, longitude: string) => {
     setValues((current) => ({ ...current, latitude, longitude }));
     clearFieldError("latitude");
@@ -168,10 +196,32 @@ function ProfilePage() {
     setErrorMessage("");
   };
 
+  const handleShopStatusToggle = async () => {
+    if (isUpdatingStatus || isProfileLoading) return;
+
+    if (!shopId) {
+      setStatusError("تعذر تحديد معرف الورشة، حدّث الصفحة وحاول مرة أخرى.");
+      return;
+    }
+
+    const nextStatus = isShopOpen ? "closed" : "open";
+
+    setStatusError("");
+
+    try {
+      const result = await updateShopStatus({ id: shopId, status: nextStatus }).unwrap();
+      setSavedMessage(result.message || (nextStatus === "open" ? "تم فتح الورشة بنجاح" : "تم إغلاق الورشة بنجاح"));
+      setShowSuccess(true);
+    } catch (error) {
+      const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
+      setStatusError(errorData?.message || "تعذر تحديث حالة الورشة، حاول مرة أخرى.");
+    }
+  };
+
   const toggleService = (serviceId: string | number) => {
     const normalizedId = String(serviceId);
     setSelectedServices((current) => (current.some((id) => String(id) === normalizedId) ? current.filter((id) => String(id) !== normalizedId) : [...current, normalizedId]));
-    clearFieldError("service_ids");
+    clearFieldError("services");
     setSavedMessage("");
     setErrorMessage("");
   };
@@ -217,8 +267,27 @@ function ProfilePage() {
       formData.append("cover_image", coverImageFile);
     }
 
-    selectedServices.forEach((serviceId) => {
-      formData.append("service_ids[]", String(serviceId));
+    if (licenseFile) {
+      formData.append("commercial_record_image", licenseFile);
+    }
+
+    if (selectedServices.length === 0) {
+      setFieldErrors((current) => ({ ...current, services: "يجب اختيار خدمة واحدة على الأقل" }));
+      return;
+    }
+
+    for (const serviceId of selectedServices) {
+      const price = servicePrices[String(serviceId)] ?? "";
+      const numericPrice = Number(price);
+      if (!price.trim() || Number.isNaN(numericPrice) || numericPrice < 0) {
+        setFieldErrors((current) => ({ ...current, services: "أدخل سعراً صحيحاً لكل خدمة مختارة" }));
+        return;
+      }
+    }
+
+    selectedServices.forEach((serviceId, index) => {
+      formData.append(`services[${index}][service_id]`, String(serviceId));
+      formData.append(`services[${index}][price]`, servicePrices[String(serviceId)] ?? "");
     });
 
     const workingHoursPayload = buildWorkingHoursPayload(workingHours);
@@ -242,6 +311,7 @@ function ProfilePage() {
           shop_name: getFieldError(errors, "shop_name"),
           description: getFieldError(errors, "description"),
           cover_image: getFieldError(errors, "cover_image"),
+          commercial_record_image: getFieldError(errors, "commercial_record_image"),
           country_id: getFieldError(errors, "country_id"),
           city_id: getFieldError(errors, "city_id"),
           district: getFieldError(errors, "district"),
@@ -249,7 +319,7 @@ function ProfilePage() {
           latitude: getFieldError(errors, "latitude"),
           longitude: getFieldError(errors, "longitude"),
           working_hours: getFieldError(errors, "working_hours"),
-          service_ids: getFieldError(errors, "service_ids"),
+          services: getServicesError(errors) || getFieldError(errors, "services"),
         });
         return;
       }
@@ -312,9 +382,31 @@ function ProfilePage() {
       </section>
 
       <section className="rounded-xl border border-primary/10 bg-white p-6 shadow-sm">
-        <div className="mb-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-bold text-primary">بيانات الورشة</h2>
+          <div className="flex items-center gap-3">
+            <span className={`text-sm font-medium ${isShopOpen ? "text-emerald-700" : "text-gray-500"}`}>{isShopOpen ? "مفتوح" : "مغلق"}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isShopOpen}
+              aria-label={isShopOpen ? "حالة الورشة: مفتوح" : "حالة الورشة: مغلق"}
+              disabled={isUpdatingStatus || isProfileLoading}
+              onClick={handleShopStatusToggle}
+              className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full p-1 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 disabled:cursor-not-allowed disabled:opacity-70 ${
+                isShopOpen ? "bg-emerald-600" : "bg-gray-300"
+              }`}
+            >
+              <span className={`inline-block size-5 rounded-full bg-white shadow transition ${isShopOpen ? "ms-auto" : "ms-0"}`} />
+            </button>
+          </div>
         </div>
+
+        {statusError ? (
+          <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            {statusError}
+          </p>
+        ) : null}
 
         {errorMessage ? (
           <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
@@ -376,6 +468,24 @@ function ProfilePage() {
               </label>
               <input id="cover_image" name="cover_image" type="file" accept="image/*" disabled={isProfileLoading} className="sr-only" onChange={handleCoverImageChange} />
               {fieldErrors.cover_image ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.cover_image}</p> : null}
+            </div>
+
+            <div className="lg:col-span-2">
+              <label htmlFor="commercial_record_image" className="mb-2 block text-sm font-medium text-label">
+                ترخيص أو مستند الورشة
+              </label>
+              <label
+                htmlFor="commercial_record_image"
+                className={`flex w-full items-center gap-3 rounded-lg border border-dashed bg-primary-light/40 px-4 py-3 text-sm text-primary transition hover:border-primary/40 ${
+                  isProfileLoading ? "cursor-not-allowed opacity-70" : "cursor-pointer"
+                } ${fieldErrors.commercial_record_image ? "border-red-500" : "border-primary/20"}`}
+              >
+                <FileImage className="size-5 shrink-0 text-primary/40" aria-hidden="true" />
+                <span className="flex-1 truncate text-start text-primary/60">{isProfileLoading ? "جاري التحميل..." : licenseFileName || "اختر صورة الترخيص أو مستنداً"}</span>
+                <Upload className="size-5 shrink-0 text-primary/40" aria-hidden="true" />
+              </label>
+              <input id="commercial_record_image" name="commercial_record_image" type="file" accept="image/*,.pdf,application/pdf" disabled={isProfileLoading} className="sr-only" onChange={handleLicenseFileChange} />
+              {fieldErrors.commercial_record_image ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.commercial_record_image}</p> : null}
             </div>
 
             <div>
@@ -542,7 +652,7 @@ function ProfilePage() {
                   الخدمة المقدمة
                   <RequiredMark />
                 </legend>
-                <div className={`max-h-36 overflow-y-auto rounded-lg border px-3 py-2 focus-within:border-primary ${fieldBorderClass(Boolean(fieldErrors.service_ids))}`}>
+                <div className={`max-h-36 overflow-y-auto rounded-lg border px-3 py-2 focus-within:border-primary ${fieldBorderClass(Boolean(fieldErrors.services))}`}>
                   {isServicesLoading || isServicesFetching ? (
                     <p className="px-2 py-2 text-sm text-primary/50">جاري تحميل الخدمات...</p>
                   ) : isServicesError ? (
@@ -554,21 +664,40 @@ function ProfilePage() {
                       {services.map((service) => {
                         const checked = selectedServices.some((id) => String(id) === String(service.id));
                         const inputId = `profile-service-${service.id}`;
+                        const serviceId = String(service.id);
 
                         return (
-                          <label key={service.id} htmlFor={inputId} className={`flex cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-sm transition ${checked ? "bg-primary/5 text-primary" : "text-primary/80 hover:bg-primary-light/50"}`}>
-                            <input id={inputId} type="checkbox" name="service_ids" value={service.id} checked={checked} onChange={() => toggleService(service.id)} className="size-4 shrink-0 accent-primary" />
-                            <span className="leading-snug">{service.name}</span>
-                          </label>
+                          <div key={service.id} className={`flex items-center gap-2 rounded-md px-2 py-2 text-sm transition ${checked ? "bg-primary/5 text-primary" : "text-primary/80"}`}>
+                            <label htmlFor={inputId} className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                              <input id={inputId} type="checkbox" name="services" value={service.id} checked={checked} onChange={() => toggleService(service.id)} className="size-4 shrink-0 accent-primary" />
+                              <span className="leading-snug">{service.name}</span>
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              inputMode="decimal"
+                              value={servicePrices[serviceId] ?? ""}
+                              disabled={!checked}
+                              onChange={(event) => {
+                                setServicePrices((current) => ({ ...current, [serviceId]: event.target.value }));
+                                clearFieldError("services");
+                              }}
+                              placeholder="السعر"
+                              dir="ltr"
+                              aria-label={`سعر ${service.name}`}
+                              className="w-20 shrink-0 rounded-lg border border-primary/15 px-2 py-1 text-xs text-primary outline-none transition placeholder:text-primary/40 focus:border-primary disabled:cursor-not-allowed disabled:bg-primary-light/40 disabled:opacity-60"
+                            />
+                          </div>
                         );
                       })}
                     </div>
                   )}
                 </div>
-                {fieldErrors.service_ids ? (
-                  <p className="mt-1.5 text-sm text-red-600">{fieldErrors.service_ids}</p>
+                {fieldErrors.services ? (
+                  <p className="mt-1.5 text-sm text-red-600">{fieldErrors.services}</p>
                 ) : selectedServices.length > 0 ? (
-                  <p className="mt-1.5 text-xs text-primary/50">تم اختيار {selectedServices.length} خدمة</p>
+                  <p className="mt-1.5 text-xs text-primary/50">تم اختيار {selectedServices.length} خدمة — أدخل السعر لكل خدمة</p>
                 ) : (
                   <p className="mt-1.5 text-xs text-primary/50">يمكنك اختيار أكثر من خدمة</p>
                 )}
@@ -587,6 +716,7 @@ function ProfilePage() {
                 setValues(emptyWorkshopProfileForm);
                 setWorkingHours(emptyWorkingHours);
                 setSelectedServices([]);
+                setServicePrices({});
                 clearCoverImage();
                 setSavedMessage("");
                 setShowSuccess(false);

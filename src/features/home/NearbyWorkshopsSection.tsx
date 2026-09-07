@@ -1,9 +1,16 @@
+import { Link } from "react-router-dom";
 import { ChevronDown, SlidersHorizontal } from "lucide-react";
+import { useGetAllPublicShopsQuery } from "../auth/authApi";
+import { isShopInFavorites } from "../favorites/favoriteUtils";
+import { useFavoriteShopLookup } from "../favorites/useFavoriteShopLookup";
 import { WorkshopCard } from "../workshops/components/WorkshopCard";
-import { mockWorkshops } from "../workshops/data/workshops.mock";
+
+const EMPTY_SHOPS: never[] = [];
 
 export function NearbyWorkshopsSection() {
-  const workshops = mockWorkshops.slice(0, 3);
+  const { data, isLoading, isError } = useGetAllPublicShopsQuery();
+  const { lookup: favoriteLookup } = useFavoriteShopLookup();
+  const workshops = (data?.data ?? EMPTY_SHOPS).slice(0, 3);
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -30,10 +37,28 @@ export function NearbyWorkshopsSection() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {workshops.map((workshop) => (
-          <WorkshopCard key={workshop.id} workshop={workshop} />
-        ))}
+      {isLoading ? (
+        <p className="text-center text-sm text-primary/70" role="status">
+          جاري تحميل الورش...
+        </p>
+      ) : isError ? (
+        <p className="text-center text-sm text-red-600" role="alert">
+          تعذر تحميل الورش القريبة.
+        </p>
+      ) : workshops.length === 0 ? (
+        <p className="text-center text-sm text-gray-500">لا توجد ورش متاحة حالياً.</p>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {workshops.map((shop) => (
+            <WorkshopCard key={shop.id} shop={shop} isFavorite={isShopInFavorites(shop, favoriteLookup)} />
+          ))}
+        </div>
+      )}
+
+      <div className="mt-8 text-center">
+        <Link to="/workshops" className="text-sm font-medium text-secondary transition hover:text-secondary-hover">
+          عرض جميع الورش
+        </Link>
       </div>
     </section>
   );

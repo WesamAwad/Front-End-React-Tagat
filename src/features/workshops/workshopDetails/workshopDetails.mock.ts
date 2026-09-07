@@ -30,10 +30,10 @@ export const mockWorkshopDetails: WorkshopDetails = {
     { id: "4", name: "تنظيف وصيانة", priceMin: 180, priceMax: 450, includesParts: true },
   ],
   spareParts: [
-    { id: "1", name: "شاشة آيفون", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 220, isAvailable: true },
-    { id: "2", name: "بطارية سامسونج", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 180, isAvailable: true },
-    { id: "3", name: "شاشة آيباد", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 350, isAvailable: true },
-    { id: "4", name: "كاميرا خلفية", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 150, isAvailable: true },
+    { id: "1", name: "شاشة آيفون", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 220, quantity: 5, image: "", isAvailable: true },
+    { id: "2", name: "بطارية سامسونج", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 180, quantity: 8, image: "", isAvailable: true },
+    { id: "3", name: "شاشة آيباد", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 350, quantity: 3, image: "", isAvailable: true },
+    { id: "4", name: "كاميرا خلفية", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 150, quantity: 12, image: "", isAvailable: true },
   ],
   reviewSummary: {
     overallRating: 4.8,

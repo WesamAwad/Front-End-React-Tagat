@@ -12,6 +12,10 @@ export function buildShopProductFormData(values: SparePartFormValues, imageFile:
     formData.append("device_model_id", values.device_model_id);
   }
 
+  if (values.device_model_name.trim()) {
+    formData.append("device_model_name", values.device_model_name.trim());
+  }
+
   if (imageFile) {
     formData.append("image", imageFile);
   }

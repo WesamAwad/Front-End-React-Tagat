@@ -1,5 +1,4 @@
 import { Fragment } from "react";
-import { ChevronDown, Search } from "lucide-react";
 import heroBg from "../../assets/Container.webp";
 
 const stats = [
@@ -21,26 +20,6 @@ export function HeroSection() {
             أصلح جهازك مع <span className="text-secondary">أفضل</span> <span>الورش</span>
           </h1>
           <p className="mt-4 max-w-2xl text-start text-sm leading-relaxed text-white/70 sm:text-base"> سويفت فيكس يربطك بأفضل ورش إصلاح الأجهزة الإلكترونية الموثقة. أسرع، أرخص، وأكثر أماناً.</p>
-
-          <div className="mx-auto mt-8 w-[90%] overflow-hidden rounded-xl bg-white shadow-lg">
-            <div className="flex items-center">
-              <div className="relative flex-1">
-                <input type="text" placeholder="ابحث عن ورشة أو نوع الجهاز..." className="w-full py-4 pr-4 pl-11 text-sm text-primary outline-none placeholder:text-primary/40" />
-                <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary/40" />
-              </div>
-              <div className="flex items-center gap-1 border-r border-primary/10 px-3">
-                <button type="button" className="cursor-pointer whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-primary/70 transition hover:bg-primary-light hover:text-primary">
-                  بحث
-                </button>
-                <button type="button" className="hidden cursor-pointer whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-primary/70 transition hover:bg-primary-light hover:text-primary sm:block">
-                  الرياض
-                </button>
-                <button type="button" className="cursor-pointer rounded-lg p-1.5 text-primary/40 transition hover:bg-primary-light hover:text-primary" aria-label="المزيد">
-                  <ChevronDown className="size-4" />
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="relative">

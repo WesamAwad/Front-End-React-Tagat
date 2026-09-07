@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronDown, IdCard, Mail, Upload, UserRound } from "lucide-react";
+import { BadgeCheck, ChevronDown, FileImage, IdCard, Mail, Upload, UserRound } from "lucide-react";
 import { PhoneInput, defaultCountries, parseCountry } from "react-international-phone";
 import { useGetAllCountriesQuery, useGetAllServicesQuery, useRegisterWorkShopMutation } from "../auth/authApi";
 import type { AuthValidationErrorResponse } from "../../types/authTypes";
@@ -18,6 +18,7 @@ const emptyFieldErrors = {
   email: "",
   phone_number: "",
   national_id_image: "",
+  commercial_record_image: "",
   country_id: "",
   service_ids: "",
   notes: "",
@@ -30,6 +31,7 @@ function WorkshopSignupPage() {
   const { data: servicesData, isLoading: isServicesLoading, isError: isServicesError } = useGetAllServicesQuery();
 
   const [idImageName, setIdImageName] = useState("");
+  const [licenseImageName, setLicenseImageName] = useState("");
   const [phone, setPhone] = useState("");
   const [selectedServices, setSelectedServices] = useState<Array<string | number>>([]);
   const [errorMessage, setErrorMessage] = useState("");
@@ -41,6 +43,11 @@ function WorkshopSignupPage() {
   const handleIdImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setIdImageName(file ? file.name : "");
+  };
+
+  const handleLicenseImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setLicenseImageName(file ? file.name : "");
   };
 
   const toggleService = (serviceId: string | number) => {
@@ -67,6 +74,11 @@ function WorkshopSignupPage() {
       formData.append("national_id_image", nationalIdImage);
     }
 
+    const commercialRecordImage = raw.get("commercial_record_image");
+    if (commercialRecordImage instanceof File && commercialRecordImage.size > 0) {
+      formData.append("commercial_record_image", commercialRecordImage);
+    }
+
     selectedServices.forEach((serviceId) => {
       formData.append("service_ids[]", String(serviceId));
     });
@@ -89,6 +101,7 @@ function WorkshopSignupPage() {
           email: errors.email?.[0] ?? "",
           phone_number: errors.phone_number?.[0] ?? "",
           national_id_image: errors.national_id_image?.[0] ?? "",
+          commercial_record_image: errors.commercial_record_image?.[0] ?? "",
           country_id: errors.country_id?.[0] ?? "",
           service_ids: errors.service_ids?.[0] ?? "",
           notes: errors.notes?.[0] ?? "",
@@ -228,6 +241,34 @@ function WorkshopSignupPage() {
               </label>
               <input id="national_id_image" name="national_id_image" type="file" accept="image/*" className="sr-only" onChange={handleIdImageChange} />
               {fieldErrors.national_id_image ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.national_id_image}</p> : null}
+            </div>
+
+            <div>
+              <label htmlFor="commercial_record_image" className="mb-2 block text-sm font-medium text-label">
+                صورة ترخيص المحل أو الشهادة
+              </label>
+              <p className="mb-2.5 flex items-center gap-2 text-xs leading-snug text-gray-400">
+                <BadgeCheck className="size-4 shrink-0 text-emerald-500" aria-hidden="true" />
+                <span>
+                  بعد المراجعة تُوثَّق الورشة وتظهر شارة{" "}
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-medium text-white">
+                    <BadgeCheck className="size-3" aria-hidden="true" />
+                    موثّق
+                  </span>
+                </span>
+              </p>
+              <label
+                htmlFor="commercial_record_image"
+                className={`flex w-full cursor-pointer items-center gap-3 rounded-lg border border-dashed bg-primary-light/40 px-4 py-3 text-sm text-primary transition hover:border-primary/40 ${
+                  fieldErrors.commercial_record_image ? "border-red-500" : "border-primary/20"
+                }`}
+              >
+                <FileImage className="size-5 shrink-0 text-primary/40" />
+                <span className="flex-1 truncate text-start text-primary/60">{licenseImageName || "اختر صورة الترخيص أو الشهادة"}</span>
+                <Upload className="size-5 shrink-0 text-primary/40" />
+              </label>
+              <input id="commercial_record_image" name="commercial_record_image" type="file" accept="image/*" className="sr-only" onChange={handleLicenseImageChange} />
+              {fieldErrors.commercial_record_image ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.commercial_record_image}</p> : null}
             </div>
 
             <div>

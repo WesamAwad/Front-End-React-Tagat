@@ -13,6 +13,8 @@ export type WorkshopSparePart = {
   name: string;
   subtitle: string;
   price: number;
+  quantity: number;
+  image: string;
   isAvailable: boolean;
 };
 

@@ -1,8 +1,16 @@
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import {
+  ClipboardCheck,
+  Boxes,
+  Tags,
+  Smartphone,
+  Building2,
   ClipboardList,
+  MapPin,
+  Globe,
   Home,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -24,6 +32,13 @@ const navItems: NavItem[] = [
   { to: "/workshop-owner", label: "لوحة التحكم", icon: LayoutDashboard, end: true },
   { to: "/workshop-owner/orders", label: "الطلبات", icon: ClipboardList },
   { to: "/workshop-owner/spare-parts", label: "قطع الغيار", icon: Package },
+  { to: "/admin/countries", label: "الدول", icon: Globe },
+  { to: "/admin/cities", label: "المدن", icon: MapPin },
+  { to: "/admin/companies", label: "الشركات", icon: Building2 },
+  { to: "/admin/devices", label: "الأجهزة", icon: Smartphone },
+  { to: "/admin/categories", label: "الفئات", icon: Tags },
+  { to: "/admin/products", label: "المنتجات", icon: Boxes },
+  { to: "/admin/workshop-owner-requests", label: "طلبات التسجيل", icon: ClipboardCheck },
   { to: "/workshop-owner/settings", label: "إعدادات الورشة", icon: Settings },
 ];
 
@@ -66,6 +81,8 @@ type SidebarProps = {
 };
 
 export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: SidebarProps) {
+  const location = useLocation();
+
   const handleLogout = () => {
     onClose();
     onLogout();
@@ -115,6 +132,15 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
       </div>
 
       <div className="space-y-1 border-t border-white/10 p-3">
+        <Link
+          to="/change-password"
+          state={{ from: location.pathname }}
+          className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white/75 transition hover:bg-primary-hover hover:text-white"
+          onClick={onClose}
+        >
+          <KeyRound className="size-5 shrink-0" aria-hidden="true" />
+          <span>تغيير كلمة المرور</span>
+        </Link>
         <Link
           to="/"
           className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white/75 transition hover:bg-primary-hover hover:text-white"

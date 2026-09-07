@@ -163,10 +163,7 @@ export function WorkshopLocationMap({ latitude, longitude, onLocationChange }: W
 
       <div className="relative h-72 w-full sm:h-80">
         <MapContainer center={position} zoom={13} scrollWheelZoom className="h-full w-full">
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <MapViewportSync lat={position.lat} lng={position.lng} />
           <MapInteractions onPick={applyCoordinates} />
           <Marker
@@ -183,9 +180,7 @@ export function WorkshopLocationMap({ latitude, longitude, onLocationChange }: W
 
         {status === "loading" ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-white/55">
-            <p className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-primary shadow-sm">
-              جاري تحديد موقعك...
-            </p>
+            <p className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-primary shadow-sm">جاري تحديد موقعك...</p>
           </div>
         ) : null}
       </div>

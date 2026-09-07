@@ -17,15 +17,6 @@ const tabs: { id: WorkshopDetailsTab; label: string }[] = [
   { id: "location", label: "الموقع والساعات" },
 ];
 
-function PlaceholderTab({ label }: { label: string }) {
-  return (
-    <div className="rounded-lg border border-dashed border-primary/15 bg-primary-light/30 px-6 py-12 text-center">
-      <p className="text-sm font-medium text-primary">{label}</p>
-      <p className="mt-1 text-xs text-gray-500">سيتم إضافة المحتوى قريباً</p>
-    </div>
-  );
-}
-
 export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelProps) {
   const [activeTab, setActiveTab] = useState<WorkshopDetailsTab>("services");
 
@@ -114,7 +105,15 @@ export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelP
         <div className="p-4 sm:p-6" role="tabpanel">
           {activeTab === "services" ? <WorkshopServicesTab workshop={workshop} /> : null}
           {activeTab === "spare-parts" ? <WorkshopSparePartsTab workshop={workshop} /> : null}
-          {activeTab === "location" ? <PlaceholderTab label="الموقع والساعات" /> : null}
+          {activeTab === "location" ? (
+            <div className="rounded-lg border border-primary/10 bg-primary-light/30 px-6 py-8">
+              <p className="text-sm font-medium text-primary">عنوان الورشة</p>
+              <p className="mt-2 flex items-start gap-2 text-sm text-gray-700">
+                <MapPin className="mt-0.5 size-4 shrink-0 text-secondary" aria-hidden="true" />
+                <span>{workshop.location}</span>
+              </p>
+            </div>
+          ) : null}
           {activeTab === "reviews" ? <WorkshopReviewsTab workshop={workshop} /> : null}
         </div>
       </section>

@@ -45,8 +45,7 @@ type SparePartFormProps = {
   onCancel: () => void;
 };
 
-const inputClass =
-  "w-full rounded-lg border border-primary/15 px-4 py-2.5 text-sm text-primary outline-none transition placeholder:text-primary/40 focus:border-primary";
+const inputClass = "w-full rounded-lg border border-primary/15 px-4 py-2.5 text-sm text-primary outline-none transition placeholder:text-primary/40 focus:border-primary";
 
 export function SparePartForm({
   mode,
@@ -111,10 +110,7 @@ export function SparePartForm({
     values.product_id,
     editPart?.product_name ?? "",
   );
-  const selectedProductLabel =
-    productOptions.find((option) => option.value === String(values.product_id))?.label ??
-    editPart?.product_name ??
-    "المنتج";
+  const selectedProductLabel = productOptions.find((option) => option.value === String(values.product_id))?.label ?? editPart?.product_name ?? "المنتج";
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -130,21 +126,10 @@ export function SparePartForm({
     <section className="rounded-xl border border-primary/10 bg-white p-6 shadow-sm">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-primary">
-            {mode === "add" ? "إضافة قطعة غيار" : "تعديل قطعة غيار"}
-          </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            {mode === "add"
-              ? "أدخل بيانات القطعة الجديدة ثم احفظها في المخزون."
-              : "عدّل البيانات ثم احفظ التغييرات."}
-          </p>
+          <h2 className="text-lg font-bold text-primary">{mode === "add" ? "إضافة قطعة غيار" : "تعديل قطعة غيار"}</h2>
+          <p className="mt-1 text-sm text-gray-600">{mode === "add" ? "أدخل بيانات القطعة الجديدة ثم احفظها في المخزون." : "عدّل البيانات ثم احفظ التغييرات."}</p>
         </div>
-        <button
-          type="button"
-          aria-label="إغلاق النموذج"
-          onClick={onCancel}
-          className="rounded-lg p-1.5 text-gray-400 transition hover:bg-primary-light hover:text-primary"
-        >
+        <button type="button" aria-label="إغلاق النموذج" onClick={onCancel} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-primary-light hover:text-primary">
           <X className="size-5" aria-hidden="true" />
         </button>
       </div>
@@ -160,24 +145,14 @@ export function SparePartForm({
               value={values.company}
               options={brandOptions}
               selectedLabel={editPart?.companyName}
-              placeholder={
-                isBrandsLoading || isBrandsFetching
-                  ? "جاري تحميل الشركات..."
-                  : isBrandsError
-                    ? "تعذر تحميل الشركات"
-                    : brands.length === 0
-                      ? "لا توجد شركات متاحة"
-                      : "ابحث أو اختر الشركة"
-              }
+              placeholder={isBrandsLoading || isBrandsFetching ? "جاري تحميل الشركات..." : isBrandsError ? "تعذر تحميل الشركات" : brands.length === 0 ? "لا توجد شركات متاحة" : "ابحث أو اختر الشركة"}
               disabled={isBrandsLoading || isBrandsFetching || isBrandsError}
               hasError={Boolean(errors.company)}
               emptyMessage="لا توجد شركات مطابقة"
               onChange={(value) => onChange("company", value)}
             />
             {errors.company ? <p className="mt-1.5 text-sm text-red-600">{errors.company}</p> : null}
-            {isBrandsError ? (
-              <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب الشركات، حاول مرة أخرى لاحقاً.</p>
-            ) : null}
+            {isBrandsError ? <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب الشركات، حاول مرة أخرى لاحقاً.</p> : null}
           </div>
 
           <div>
@@ -188,29 +163,17 @@ export function SparePartForm({
               id="spare-device"
               value={values.device_model_id}
               options={deviceOptions}
-              selectedLabel={editPart?.device_model_name}
+              selectedLabel={values.device_model_name || editPart?.device_model_name}
               placeholder={
-                !values.company
-                  ? "اختر الشركة أولاً"
-                  : isDevicesLoading || isDevicesFetching
-                    ? "جاري تحميل الأجهزة..."
-                    : isDevicesError
-                      ? "تعذر تحميل الأجهزة"
-                      : availableDevices.length === 0
-                        ? "لا توجد أجهزة لهذه الشركة"
-                        : "ابحث أو اختر الجهاز"
+                !values.company ? "اختر الشركة أولاً" : isDevicesLoading || isDevicesFetching ? "جاري تحميل الأجهزة..." : isDevicesError ? "تعذر تحميل الأجهزة" : availableDevices.length === 0 ? "لا توجد أجهزة لهذه الشركة" : "ابحث أو اختر الجهاز"
               }
               disabled={!values.company || isDevicesLoading || isDevicesFetching || isDevicesError}
               hasError={Boolean(errors.device_model_id)}
               emptyMessage="لا توجد أجهزة مطابقة"
               onChange={(value) => onChange("device_model_id", value)}
             />
-            {errors.device_model_id ? (
-              <p className="mt-1.5 text-sm text-red-600">{errors.device_model_id}</p>
-            ) : null}
-            {isDevicesError ? (
-              <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب الأجهزة، حاول مرة أخرى لاحقاً.</p>
-            ) : null}
+            {errors.device_model_id ? <p className="mt-1.5 text-sm text-red-600">{errors.device_model_id}</p> : null}
+            {isDevicesError ? <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب الأجهزة، حاول مرة أخرى لاحقاً.</p> : null}
           </div>
 
           <div>
@@ -222,24 +185,14 @@ export function SparePartForm({
               value={values.category_id}
               options={categoryOptions}
               selectedLabel={editPart?.category_name}
-              placeholder={
-                isCategoriesLoading || isCategoriesFetching
-                  ? "جاري تحميل الفئات..."
-                  : isCategoriesError
-                    ? "تعذر تحميل الفئات"
-                    : categories.length === 0
-                      ? "لا توجد فئات متاحة"
-                      : "ابحث أو اختر الفئة"
-              }
+              placeholder={isCategoriesLoading || isCategoriesFetching ? "جاري تحميل الفئات..." : isCategoriesError ? "تعذر تحميل الفئات" : categories.length === 0 ? "لا توجد فئات متاحة" : "ابحث أو اختر الفئة"}
               disabled={isCategoriesLoading || isCategoriesFetching || isCategoriesError}
               hasError={Boolean(errors.category_id)}
               emptyMessage="لا توجد فئات مطابقة"
               onChange={(value) => onChange("category_id", value)}
             />
             {errors.category_id ? <p className="mt-1.5 text-sm text-red-600">{errors.category_id}</p> : null}
-            {isCategoriesError ? (
-              <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب الفئات، حاول مرة أخرى لاحقاً.</p>
-            ) : null}
+            {isCategoriesError ? <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب الفئات، حاول مرة أخرى لاحقاً.</p> : null}
           </div>
 
           <div>
@@ -268,9 +221,7 @@ export function SparePartForm({
               onChange={(value) => onChange("product_id", value)}
             />
             {errors.product_id ? <p className="mt-1.5 text-sm text-red-600">{errors.product_id}</p> : null}
-            {isProductsError ? (
-              <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب المنتجات، حاول مرة أخرى لاحقاً.</p>
-            ) : null}
+            {isProductsError ? <p className="mt-1.5 text-sm text-red-600">حدث خطأ أثناء جلب المنتجات، حاول مرة أخرى لاحقاً.</p> : null}
           </div>
 
           <div className="sm:col-span-2">
@@ -310,17 +261,7 @@ export function SparePartForm({
             <label htmlFor="spare-price" className="mb-2 block text-sm font-medium text-label">
               السعر (ر.س)
             </label>
-            <input
-              id="spare-price"
-              type="number"
-              min="0"
-              step="1"
-              value={values.price}
-              onChange={(event) => onChange("price", event.target.value)}
-              placeholder="0"
-              dir="ltr"
-              className={`${inputClass} ${errors.price ? "border-red-500" : ""}`}
-            />
+            <input id="spare-price" type="number" min="0" step="1" value={values.price} onChange={(event) => onChange("price", event.target.value)} placeholder="0" dir="ltr" className={`${inputClass} ${errors.price ? "border-red-500" : ""}`} />
             {errors.price ? <p className="mt-1.5 text-sm text-red-600">{errors.price}</p> : null}
           </div>
 
@@ -330,15 +271,9 @@ export function SparePartForm({
             </span>
             <div className="flex flex-wrap items-start gap-4">
               {values.image ? (
-                <img
-                  src={values.image}
-                  alt={values.product_id ? `صورة ${selectedProductLabel}` : "معاينة صورة المنتج"}
-                  className="size-20 rounded-lg border border-primary/10 object-cover"
-                />
+                <img src={values.image} alt={values.product_id ? `صورة ${selectedProductLabel}` : "معاينة صورة المنتج"} className="size-20 rounded-lg border border-primary/10 object-cover" />
               ) : (
-                <div className="flex size-20 items-center justify-center rounded-lg border border-dashed border-primary/20 bg-primary-light/40 text-xs text-primary/50">
-                  لا توجد صورة
-                </div>
+                <div className="flex size-20 items-center justify-center rounded-lg border border-dashed border-primary/20 bg-primary-light/40 text-xs text-primary/50">لا توجد صورة</div>
               )}
               <div className="min-w-0 flex-1">
                 <label
@@ -348,17 +283,9 @@ export function SparePartForm({
                   } bg-primary-light/40`}
                 >
                   <ImageUp className="size-5 shrink-0 text-primary/40" aria-hidden="true" />
-                  <span className="flex-1 truncate text-primary/60">
-                    {imageFileName || "اختر صورة المنتج"}
-                  </span>
+                  <span className="flex-1 truncate text-primary/60">{imageFileName || "اختر صورة المنتج"}</span>
                 </label>
-                <input
-                  id="spare-image"
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  onChange={handleImageInputChange}
-                />
+                <input id="spare-image" type="file" accept="image/*" className="sr-only" onChange={handleImageInputChange} />
                 {errors.image ? <p className="mt-1.5 text-sm text-red-600">{errors.image}</p> : null}
               </div>
             </div>
@@ -368,12 +295,7 @@ export function SparePartForm({
             <label htmlFor="spare-status" className="mb-2 block text-sm font-medium text-label">
               الحالة
             </label>
-            <select
-              id="spare-status"
-              value={values.status}
-              onChange={(event) => onChange("status", event.target.value as SparePartStatus)}
-              className={`${inputClass} ${errors.status ? "border-red-500" : ""}`}
-            >
+            <select id="spare-status" value={values.status} onChange={(event) => onChange("status", event.target.value as SparePartStatus)} className={`${inputClass} ${errors.status ? "border-red-500" : ""}`}>
               {SPARE_PART_STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -391,18 +313,10 @@ export function SparePartForm({
         ) : null}
 
         <div className="flex flex-wrap gap-3 border-t border-primary/10 pt-5">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="rounded-lg bg-secondary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-secondary-hover disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <button type="submit" disabled={isSubmitting} className="rounded-lg bg-secondary px-5 py-2.5 text-sm font-medium text-white transition hover:bg-secondary-hover disabled:cursor-not-allowed disabled:opacity-60">
             {isSubmitting ? "جاري الحفظ..." : mode === "add" ? "إضافة القطعة" : "حفظ التعديلات"}
           </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="rounded-lg border border-primary/15 px-5 py-2.5 text-sm font-medium text-primary transition hover:bg-primary-light"
-          >
+          <button type="button" onClick={onCancel} className="rounded-lg border border-primary/15 px-5 py-2.5 text-sm font-medium text-primary transition hover:bg-primary-light">
             إلغاء
           </button>
         </div>

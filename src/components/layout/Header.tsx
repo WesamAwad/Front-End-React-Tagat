@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu, Settings, User, X } from "lucide-react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { ChevronDown, Heart, KeyRound, LogOut, Menu, X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout } from "../../features/auth/authSlice";
 import { useLogoutClientMutation } from "../../features/auth/authApi";
+import { useFavoriteShopLookup } from "../../features/favorites/useFavoriteShopLookup";
 import logo from "../../assets/SwiftFix-Logo.svg";
 
 const navLinks = [
@@ -22,8 +23,10 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAppSelector((state) => state.auth.user);
   const [logoutClient] = useLogoutClientMutation();
+  const { count: favoritesCount } = useFavoriteShopLookup();
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -70,6 +73,19 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Link
+            to="/favorites"
+            aria-label={favoritesCount > 0 ? `المفضلة (${favoritesCount})` : "المفضلة"}
+            className="relative inline-flex size-10 items-center justify-center rounded-lg text-primary transition hover:bg-primary-light hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
+          >
+            <Heart className="size-5" aria-hidden="true" />
+            {favoritesCount > 0 ? (
+              <span className="absolute -top-0.5 -inset-e-0.5 flex min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold leading-4 text-white">
+                {favoritesCount > 9 ? "9+" : favoritesCount}
+              </span>
+            ) : null}
+          </Link>
+
           {user ? (
             <div className="relative" ref={dropdownRef}>
               <button type="button" onClick={() => setIsDropdownOpen((open) => !open)} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary-light">
@@ -88,14 +104,15 @@ export function Header() {
                   </div>
 
                   <div className="py-1">
-                    <Link to="/profile" onClick={() => setIsDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary/80 transition hover:bg-primary-light">
-                      <User className="size-4" />
-                      عرض الملف الشخصي
+                    <Link
+                      to="/change-password"
+                      state={{ from: location.pathname }}
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary/80 transition hover:bg-primary-light"
+                    >
+                      <KeyRound className="size-4" />
+                      تغيير كلمة المرور
                     </Link>
-                    <button type="button" className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-primary/80 transition hover:bg-primary-light" onClick={() => setIsDropdownOpen(false)}>
-                      <Settings className="size-4" />
-                      الإعدادات
-                    </button>
                   </div>
 
                   <div className="border-t border-primary/10 py-1">
@@ -151,6 +168,24 @@ export function Header() {
                 {link.label}
               </NavLink>
             ))}
+
+            <NavLink
+              to="/favorites"
+              className={({ isActive }) =>
+                `flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium transition ${isActive ? "bg-primary-light font-semibold text-secondary" : "text-primary/70 hover:bg-primary-light hover:text-primary"}`
+              }
+              onClick={closeMenu}
+            >
+              <span className="relative inline-flex">
+                <Heart className="size-4" aria-hidden="true" />
+                {favoritesCount > 0 ? (
+                  <span className="absolute -top-1.5 -inset-e-2 flex min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[9px] font-bold leading-3 text-white">
+                    {favoritesCount > 9 ? "9+" : favoritesCount}
+                  </span>
+                ) : null}
+              </span>
+              المفضلة
+            </NavLink>
 
             {!user && (
               <div className="mt-3 flex flex-col gap-2 pt-3">

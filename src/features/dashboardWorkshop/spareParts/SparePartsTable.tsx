@@ -119,45 +119,23 @@ export function SparePartsTable({ parts, isLoading = false, isFetching = false, 
             {parts.map((part) => (
               <tr key={part.id} className="transition hover:bg-primary-light/30">
                 <td className="px-4 py-4 font-medium text-gray-800 sm:px-6">{part.product_name}</td>
-                <td className="hidden whitespace-nowrap px-4 py-4 text-gray-600 md:table-cell sm:px-6">
-                  {part.category_name}
-                </td>
-                <td className="hidden whitespace-nowrap px-4 py-4 text-gray-600 lg:table-cell sm:px-6">
-                  {part.device_model_name || "—"}
-                </td>
+                <td className="hidden whitespace-nowrap px-4 py-4 text-gray-600 md:table-cell sm:px-6">{part.category_name}</td>
+                <td className="hidden whitespace-nowrap px-4 py-4 text-gray-600 lg:table-cell sm:px-6">{part.device_model_name || "—"}</td>
                 <td className="hidden max-w-xs px-4 py-4 text-gray-600 xl:table-cell sm:px-6">
                   <p className="line-clamp-2">{part.description || "—"}</p>
                 </td>
                 <td className="whitespace-nowrap px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-primary">{part.quantity}</span>
-                    <span
-                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${quantityBadge(part.quantity)}`}
-                    >
-                      {quantityLabel(part.quantity)}
-                    </span>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${quantityBadge(part.quantity)}`}>{quantityLabel(part.quantity)}</span>
                   </div>
                 </td>
-                <td className="whitespace-nowrap px-4 py-4 text-gray-700 sm:px-6">
-                  {formatPrice(part.price)}
+                <td className="whitespace-nowrap px-4 py-4 text-gray-700 sm:px-6">{formatPrice(part.price)}</td>
+                <td className="whitespace-nowrap px-4 py-4 sm:px-6">
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadge(part.status)}`}>{statusLabel(part.status)}</span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-4 sm:px-6">
-                  <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadge(part.status)}`}
-                  >
-                    {statusLabel(part.status)}
-                  </span>
-                </td>
-                <td className="whitespace-nowrap px-4 py-4 sm:px-6">
-                  {part.image ? (
-                    <img
-                      src={part.image}
-                      alt={part.product_name}
-                      className="size-12 rounded-lg border border-primary/10 object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs text-gray-400">—</span>
-                  )}
+                  {part.image ? <img src={part.image} alt={part.product_name} className="size-12 rounded-lg border border-primary/10 object-cover" /> : <span className="text-xs text-gray-400">—</span>}
                 </td>
                 <td className="whitespace-nowrap px-4 py-4 sm:px-6">
                   <div className="flex flex-wrap items-center gap-2">

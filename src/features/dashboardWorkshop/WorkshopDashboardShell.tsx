@@ -22,22 +22,9 @@ export function WorkshopDashboardShell({ children }: WorkshopDashboardShellProps
 
   return (
     <div className="flex min-h-screen bg-primary-light">
-      {isSidebarOpen ? (
-        <button
-          type="button"
-          aria-label="إغلاق القائمة"
-          className="fixed inset-0 z-40 bg-primary/40 lg:hidden"
-          onClick={closeSidebar}
-        />
-      ) : null}
+      {isSidebarOpen ? <button type="button" aria-label="إغلاق القائمة" className="fixed inset-0 z-40 bg-primary/40 lg:hidden" onClick={closeSidebar} /> : null}
 
-      <Sidebar
-        isOpen={isSidebarOpen}
-        displayName={displayName}
-        initials={initials}
-        onClose={closeSidebar}
-        onLogout={handleLogout}
-      />
+      <Sidebar isOpen={isSidebarOpen} displayName={displayName} initials={initials} onClose={closeSidebar} onLogout={handleLogout} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <WorkshopHeader displayName={displayName} initials={initials} onMenuOpen={() => setIsSidebarOpen(true)} />

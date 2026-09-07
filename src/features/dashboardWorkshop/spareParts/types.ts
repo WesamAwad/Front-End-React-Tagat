@@ -27,6 +27,7 @@ export type SparePartFormValues = {
   product_id: string;
   category_id: string;
   device_model_id: string;
+  device_model_name: string;
   description: string;
   price: string;
   quantity: string;
@@ -39,6 +40,7 @@ export const emptySparePartForm: SparePartFormValues = {
   product_id: "",
   category_id: "",
   device_model_id: "",
+  device_model_name: "",
   description: "",
   price: "",
   quantity: "",

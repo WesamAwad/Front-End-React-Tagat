@@ -1,7 +1,9 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
+import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import SuccessToast from "../../../components/SuccessToast";
 import {
+  useDeleteShopProductMutation,
   useGetAllShopProductsQuery,
   useGetBrandByIdQuery,
   useGetBrandsForSelectQuery,
@@ -24,22 +26,41 @@ const EMPTY_DEVICES: BrandDevice[] = [];
 const EMPTY_PRODUCTS: CategoryProduct[] = [];
 const EMPTY_PARTS: SparePart[] = [];
 
-const formFieldErrorKeys = ["product_id", "device_model_id", "price", "quantity", "image", "description", "status"] as const;
-type FormFieldErrorKey = (typeof formFieldErrorKeys)[number];
+const sparePartFormKeys = new Set<keyof SparePartFormValues>([
+  "company",
+  "product_id",
+  "category_id",
+  "device_model_id",
+  "device_model_name",
+  "description",
+  "price",
+  "quantity",
+  "image",
+  "status",
+]);
 
-function getApiFieldError(errors: Record<string, string[]> | undefined, key: FormFieldErrorKey) {
-  if (!errors) return "";
-  if (errors[key]?.[0]) return errors[key][0];
-  if (key === "device_model_id" && errors.device_id?.[0]) return errors.device_id[0];
+function normalizeApiErrorKey(key: string): keyof SparePartFormValues | null {
+  const rootKey = key.split(".")[0];
+  if (rootKey === "device_id") return "device_model_id";
 
-  const nestedEntry = Object.entries(errors).find(([errorKey]) => errorKey.startsWith(`${key}.`));
-  return nestedEntry?.[1]?.[0] ?? "";
+  if (sparePartFormKeys.has(rootKey as keyof SparePartFormValues)) {
+    return rootKey as keyof SparePartFormValues;
+  }
+
+  return null;
 }
 
 function mapApiErrorsToForm(errors: Record<string, string[]> | undefined) {
-  return formFieldErrorKeys.reduce<Partial<Record<keyof SparePartFormValues, string>>>((accumulator, key) => {
-    const message = getApiFieldError(errors, key);
-    if (message) accumulator[key] = message;
+  if (!errors) return {};
+
+  return Object.entries(errors).reduce<Partial<Record<keyof SparePartFormValues, string>>>((accumulator, [key, messages]) => {
+    const formKey = normalizeApiErrorKey(key);
+    const message = messages?.[0];
+
+    if (formKey && message && !accumulator[formKey]) {
+      accumulator[formKey] = message;
+    }
+
     return accumulator;
   }, {});
 }
@@ -50,35 +71,13 @@ function sparePartToFormValues(part: SparePart): SparePartFormValues {
     product_id: String(part.product_id ?? ""),
     category_id: String(part.category_id ?? ""),
     device_model_id: String(part.device_model_id ?? ""),
+    device_model_name: part.device_model_name ?? "",
     description: part.description ?? "",
     price: String(part.price),
     quantity: String(part.quantity),
     image: part.image,
     status: part.status,
   };
-}
-
-function validateForm(values: SparePartFormValues) {
-  const errors: Partial<Record<keyof SparePartFormValues, string>> = {};
-
-  if (!values.category_id) errors.category_id = "اختر الفئة";
-  if (!values.product_id) errors.product_id = "اختر المنتج";
-
-  const price = Number(values.price);
-  if (!values.price.trim() || Number.isNaN(price) || price < 0) {
-    errors.price = "أدخل سعراً صحيحاً";
-  }
-
-  const quantity = Number(values.quantity);
-  if (!values.quantity.trim() || Number.isNaN(quantity) || quantity < 0 || !Number.isInteger(quantity)) {
-    errors.quantity = "أدخل كمية صحيحة";
-  }
-
-  if (values.status !== "available" && values.status !== "out_of_stock") {
-    errors.status = "اختر الحالة";
-  }
-
-  return errors;
 }
 
 function revokeImagePreview(image: string) {
@@ -88,9 +87,10 @@ function revokeImagePreview(image: string) {
 }
 
 function SparePartsWorkshopPage() {
-  const [hiddenPartIds, setHiddenPartIds] = useState<string[]>([]);
   const [formMode, setFormMode] = useState<"add" | "edit" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; productName: string } | null>(null);
+  const [deleteError, setDeleteError] = useState("");
   const [formValues, setFormValues] = useState<SparePartFormValues>(emptySparePartForm);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SparePartFormValues, string>>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -101,17 +101,13 @@ function SparePartsWorkshopPage() {
 
   const [storeShopProduct, { isLoading: isStoring }] = useStoreShopProductMutation();
   const [updateShopProduct, { isLoading: isUpdating }] = useUpdateShopProductMutation();
+  const [deleteShopProduct, { isLoading: isDeleting }] = useDeleteShopProductMutation();
   const isSubmitting = isStoring || isUpdating;
 
-  const {
-    data: shopProductsData,
-    isLoading: isPartsLoading,
-    isFetching: isPartsFetching,
-    isError: isPartsError,
-  } = useGetAllShopProductsQuery();
+  const { data: shopProductsData, isLoading: isPartsLoading, isFetching: isPartsFetching, isError: isPartsError } = useGetAllShopProductsQuery();
 
-  const parts = (shopProductsData?.data ?? EMPTY_PARTS).filter((part) => !hiddenPartIds.includes(part.id));
-  const editingPart = formMode === "edit" && editingId ? parts.find((part) => part.id === editingId) ?? null : null;
+  const parts = shopProductsData?.data ?? EMPTY_PARTS;
+  const editingPart = formMode === "edit" && editingId ? (parts.find((part) => part.id === editingId) ?? null) : null;
 
   const { data: brandsData, isLoading: isBrandsLoading, isFetching: isBrandsFetching, isError: isBrandsError } = useGetBrandsForSelectQuery(undefined, { skip: !formMode });
 
@@ -189,6 +185,12 @@ function SparePartsWorkshopPage() {
 
       if (field === "company") {
         next.device_model_id = "";
+        next.device_model_name = "";
+      }
+
+      if (field === "device_model_id") {
+        const selectedDevice = devices.find((device) => String(device.id) === value);
+        next.device_model_name = selectedDevice?.name ?? "";
       }
 
       if (field === "category_id") {
@@ -216,25 +218,15 @@ function SparePartsWorkshopPage() {
   };
 
   const handleSubmit = async () => {
-    const errors = validateForm(formValues);
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
+    setFormErrors({});
+    setSubmitError("");
 
     const formData = buildShopProductFormData(formValues, imageFile);
 
     try {
-      const result =
-        formMode === "edit" && editingId
-          ? await updateShopProduct({ id: editingId, body: formData }).unwrap()
-          : await storeShopProduct(formData).unwrap();
+      const result = formMode === "edit" && editingId ? await updateShopProduct({ id: editingId, body: formData }).unwrap() : await storeShopProduct(formData).unwrap();
 
-      setSuccessMessage(
-        result.message ||
-          (formMode === "edit" ? "تم تحديث قطعة الغيار بنجاح." : "تمت إضافة قطعة الغيار بنجاح."),
-      );
+      setSuccessMessage(result.message || (formMode === "edit" ? "تم تحديث قطعة الغيار بنجاح." : "تمت إضافة قطعة الغيار بنجاح."));
       setShowSuccess(true);
       resetFormState();
     } catch (error) {
@@ -243,27 +235,63 @@ function SparePartsWorkshopPage() {
       const mappedErrors = mapApiErrorsToForm(apiErrors);
 
       if (Object.keys(mappedErrors).length > 0) {
-        setFormErrors((current) => ({ ...current, ...mappedErrors }));
+        setFormErrors(mappedErrors);
         return;
       }
 
-      setSubmitError(
-        errorData?.message ||
-          (formMode === "edit"
-            ? "حدث خطأ أثناء تحديث قطعة الغيار، حاول مرة أخرى."
-            : "حدث خطأ أثناء حفظ قطعة الغيار، حاول مرة أخرى."),
-      );
+      setSubmitError(errorData?.message || (formMode === "edit" ? "حدث خطأ أثناء تحديث قطعة الغيار، حاول مرة أخرى." : "حدث خطأ أثناء حفظ قطعة الغيار، حاول مرة أخرى."));
     }
   };
 
-  const handleDelete = (id: string) => {
-    setHiddenPartIds((current) => (current.includes(id) ? current : [...current, id]));
-    if (editingId === id) closeForm();
+  const handleDeleteRequest = (id: string) => {
+    const part = parts.find((item) => item.id === id);
+    if (!part) return;
+
+    setDeleteError("");
+    setPendingDelete({ id, productName: part.product_name });
+  };
+
+  const handleCancelDelete = () => {
+    if (isDeleting) return;
+    setPendingDelete(null);
+    setDeleteError("");
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+
+    try {
+      const result = await deleteShopProduct(pendingDelete.id).unwrap();
+      setSuccessMessage(result.message || "تم حذف قطعة الغيار بنجاح.");
+      setShowSuccess(true);
+      setPendingDelete(null);
+      setDeleteError("");
+
+      if (editingId === pendingDelete.id) {
+        closeForm();
+      }
+    } catch (error) {
+      const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
+      setDeleteError(errorData?.message || "حدث خطأ أثناء حذف قطعة الغيار، حاول مرة أخرى.");
+    }
   };
 
   return (
     <div className="space-y-6">
       <SuccessToast open={showSuccess} message={successMessage} onClose={() => setShowSuccess(false)} />
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="تأكيد الحذف"
+        message={pendingDelete ? `هل أنت متأكد من حذف «${pendingDelete.productName}»؟ لا يمكن التراجع عن هذا الإجراء.` : ""}
+        confirmLabel="حذف"
+        cancelLabel="إلغاء"
+        variant="danger"
+        isLoading={isDeleting}
+        error={deleteError}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
 
       <section className="rounded-xl border border-primary/10 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -327,14 +355,7 @@ function SparePartsWorkshopPage() {
         />
       ) : null}
 
-      <SparePartsTable
-        parts={parts}
-        isLoading={isPartsLoading}
-        isFetching={isPartsFetching}
-        isError={isPartsError}
-        onEdit={openEditForm}
-        onDelete={handleDelete}
-      />
+      <SparePartsTable parts={parts} isLoading={isPartsLoading} isFetching={isPartsFetching} isError={isPartsError} onEdit={openEditForm} onDelete={handleDeleteRequest} />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 export type Workshop = {
-  id: number;
+  id: string | number;
   name: string;
   rating: number;
   reviewCount: number;

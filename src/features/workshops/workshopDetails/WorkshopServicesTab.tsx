@@ -26,16 +26,26 @@ export function WorkshopServicesTab({ workshop }: WorkshopServicesTabProps) {
           </div>
 
           <div className="shrink-0">
-            <p className="text-sm font-bold text-primary">
-              <span className="text-xs font-normal">ر.س </span>
-              {service.priceMin} – {service.priceMax}
-            </p>
-            {service.includesParts ? (
-              <p className="mt-0.5 text-xs text-[#525252]">يشمل قطع الغيار</p>
-            ) : null}
+            {service.priceMin > 0 || service.priceMax > 0 ? (
+              <>
+                <p className="text-sm font-bold text-primary">
+                  <span className="text-xs font-normal">ر.س </span>
+                  {service.priceMin} – {service.priceMax}
+                </p>
+                {service.includesParts ? <p className="mt-0.5 text-xs text-[#525252]">يشمل قطع الغيار</p> : null}
+              </>
+            ) : (
+              <p className="text-sm font-medium text-primary">حسب الفحص</p>
+            )}
           </div>
         </article>
       ))}
+
+      {workshop.services.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-primary/15 bg-primary-light/30 px-6 py-10 text-center">
+          <p className="text-sm font-medium text-primary">لا توجد خدمات معروضة حالياً</p>
+        </div>
+      ) : null}
 
       <div className="rounded bg-secondary px-3 py-3 text-center text-xs text-[#0a0a0a]">
         ملاحظة: الأسعار النهائية تُحدد بعد الفحص المجاني للجهاز

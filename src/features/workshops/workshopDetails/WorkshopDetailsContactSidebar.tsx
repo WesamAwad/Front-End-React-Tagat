@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Calendar, Heart, MessageCircle, Share2 } from "lucide-react";
 import type { WorkshopDetails } from "./types";
 
@@ -20,10 +21,10 @@ export function WorkshopDetailsContactSidebar({ workshop }: WorkshopDetailsConta
         </div>
 
         <div className="flex gap-3">
-          <button type="button" className="flex flex-1 items-center justify-center gap-1 rounded bg-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-primary-hover">
+          <Link to="/workshops/booking" className="flex flex-1 items-center justify-center gap-1 rounded bg-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-primary-hover">
             <Calendar className="size-4 shrink-0" aria-hidden="true" />
             <span>احجز موعد</span>
-          </button>
+          </Link>
           <button type="button" className="flex flex-1 items-center justify-center gap-1 rounded bg-primary-light px-4 py-2.5 text-[13px] font-semibold text-primary transition hover:bg-primary/10">
             <MessageCircle className="size-4 shrink-0" aria-hidden="true" />
             <span>ابدأ المحادثة</span>
