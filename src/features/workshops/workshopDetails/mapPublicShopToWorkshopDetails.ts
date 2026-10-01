@@ -29,7 +29,7 @@ export function mapPublicShopToWorkshopDetails(shop: PublicShop): WorkshopDetail
     minPrice: 0,
     deviceTypesCount: shop.services.length,
     whyChooseTitle: "لماذا تختار هذه الورشة؟",
-    whyChooseItems: shop.services.length > 0 ? shop.services.slice(0, 4) : ["خدمات صيانة موثوقة", "فريق متخصص", "أسعار واضحة بعد الفحص"],
+    whyChooseItems: [],
     services: shop.services.map((name, index) => ({
       id: `${shop.id}-service-${index}`,
       name,
@@ -40,5 +40,14 @@ export function mapPublicShopToWorkshopDetails(shop: PublicShop): WorkshopDetail
     spareParts: [],
     reviewSummary: EMPTY_REVIEW_SUMMARY,
     reviews: [],
+    latitude: "",
+    longitude: "",
+    detailedAddress: location,
+    addressNote: "",
+    workingHours: [],
+    phone: "",
+    whatsapp: "",
+    email: "",
+    website: "",
   };
 }

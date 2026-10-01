@@ -6,6 +6,7 @@ type ConfirmDialogProps = {
   title: string;
   message: string;
   confirmLabel?: string;
+  loadingLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "primary";
   isLoading?: boolean;
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel = "تأكيد",
+  loadingLabel = "جاري الحذف...",
   cancelLabel = "إلغاء",
   variant = "primary",
   isLoading = false,
@@ -111,7 +113,7 @@ export function ConfirmDialog({
             onClick={onConfirm}
             className={`rounded-lg px-4 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60 ${confirmButtonClass}`}
           >
-            {isLoading ? "جاري الحذف..." : confirmLabel}
+            {isLoading ? loadingLabel : confirmLabel}
           </button>
         </div>
       </div>

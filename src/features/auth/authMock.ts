@@ -35,6 +35,7 @@ export async function mockLogin(body: ClientLoginRequest): Promise<{ data: Clien
     data: {
       message: "تم تسجيل الدخول بنجاح",
       data: { first_name: "أحمد", last_name: "محمد" },
+      role: "customer",
       token: "mock-token-swiftfix",
     },
   };

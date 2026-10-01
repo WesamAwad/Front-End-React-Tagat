@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Calendar, Check, FileImage, IdCard, Mail, MapPin, Phone, Trash2, UserCheck, Wrench, X } from "lucide-react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import SuccessToast from "../../../components/SuccessToast";
@@ -45,8 +45,28 @@ function WorkshopOwnerRequestsPage() {
   const [actionError, setActionError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [approveSuccess, setApproveSuccess] = useState<{ name: string; message: string } | null>(null);
+  const approveSuccessTitleId = useId();
+  const approveSuccessDescId = useId();
 
   const isActionLoading = isApproving || isRejecting || isDeleting;
+
+  useEffect(() => {
+    if (!approveSuccess) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setApproveSuccess(null);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [approveSuccess]);
 
   const requests = (data?.data ?? EMPTY_REQUESTS).map((request) => {
     const override = statusOverrides[String(request.id)];
@@ -56,13 +76,17 @@ function WorkshopOwnerRequestsPage() {
   const handleApprove = async (id: string | number) => {
     if (isActionLoading) return;
 
+    const request = requests.find((item) => String(item.id) === String(id));
     setActionError("");
     setActionId(id);
 
     try {
       const result = await approveShopOwnerVerification(id).unwrap();
       setStatusOverrides((current) => ({ ...current, [String(id)]: "accepted" }));
-      setSuccessMessage(result.message || "تم قبول الطلب بنجاح");
+      setApproveSuccess({
+        name: request?.full_name || "صاحب الورشة",
+        message: result.message || "تم قبول الطلب بنجاح",
+      });
     } catch (error) {
       const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
       setActionError(errorData?.message || "تعذر قبول الطلب، حاول مرة أخرى.");
@@ -303,6 +327,55 @@ function WorkshopOwnerRequestsPage() {
       )}
 
       <SuccessToast open={Boolean(successMessage)} message={successMessage} onClose={() => setSuccessMessage("")} />
+
+      {approveSuccess ? (
+        <div className="fixed inset-0 z-2000 flex items-center justify-center p-4" role="presentation">
+          <button type="button" aria-label="إغلاق رسالة النجاح" className="absolute inset-0 bg-primary/45 backdrop-blur-[2px]" onClick={() => setApproveSuccess(null)} />
+
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={approveSuccessTitleId}
+            aria-describedby={approveSuccessDescId}
+            className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="flex size-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-sm">
+                <Check className="size-8" strokeWidth={3} aria-hidden="true" />
+              </div>
+              <h2 id={approveSuccessTitleId} className="mt-4 text-lg font-bold text-[#0a0a0a]">
+                تم القبول بنجاح
+              </h2>
+              <p id={approveSuccessDescId} className="mt-2 text-sm text-[#777]">
+                {approveSuccess.message}
+              </p>
+            </div>
+
+            <hr className="my-5 border-[#eee]" />
+
+            <dl className="space-y-3 text-sm">
+              <div className="flex items-center justify-between gap-4">
+                <dt className="shrink-0 text-[#888]">صاحب الورشة</dt>
+                <dd className="text-end font-medium text-primary">{approveSuccess.name}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <dt className="shrink-0 text-[#888]">الحالة</dt>
+                <dd>
+                  <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-200">مقبول</span>
+                </dd>
+              </div>
+            </dl>
+
+            <button
+              type="button"
+              onClick={() => setApproveSuccess(null)}
+              className="mt-5 w-full rounded-lg bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              حسناً
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <ConfirmDialog
         open={Boolean(deleteTarget)}

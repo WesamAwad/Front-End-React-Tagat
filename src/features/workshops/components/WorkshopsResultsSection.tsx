@@ -1,22 +1,48 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, List, MapPinned } from "lucide-react";
 import { useGetAllPublicShopsQuery } from "../../auth/authApi";
 import { isShopInFavorites } from "../../favorites/favoriteUtils";
 import { useFavoriteShopLookup } from "../../favorites/useFavoriteShopLookup";
+import type { WorkshopsUiFilters } from "./WorkshopsFiltersSidebar";
 import { WorkshopCard } from "./WorkshopCard";
 
-const sortOptions = ["التقييمات", "السعر", "المسافة", "التقييم"] as const;
 const EMPTY_SHOPS: never[] = [];
 
-export function WorkshopsResultsSection() {
-  const [activeSort, setActiveSort] = useState<(typeof sortOptions)[number]>("التقييمات");
+type WorkshopsResultsSectionProps = {
+  filters: WorkshopsUiFilters;
+  mapSearchOpen: boolean;
+  onToggleMapSearch: () => void;
+};
+
+export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSearch }: WorkshopsResultsSectionProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data, isLoading, isError, isFetching } = useGetAllPublicShopsQuery();
+  const { data, isLoading, isError, isFetching } = useGetAllPublicShopsQuery({
+    name: filters.name,
+    city_name: filters.city_name,
+    status: filters.status,
+    service_id: filters.service_id,
+    price: filters.price,
+    product_name: filters.product_name,
+    rating: filters.rating,
+    is_verified: filters.verified_only ? 1 : null,
+  });
   const { lookup: favoriteLookup } = useFavoriteShopLookup();
+
   const shops = data?.data ?? EMPTY_SHOPS;
   const totalWorkshops = shops.length;
+
+  const filterHints = [
+    filters.name ? `اسم: ${filters.name}` : null,
+    filters.city_name || "كل المدن",
+    filters.status === "open" ? "مفتوح الآن" : null,
+    filters.verified_only ? "موثّقة فقط" : null,
+    filters.service_id != null ? "خدمة محددة" : null,
+    filters.product_name ? `قطعة: ${filters.product_name}` : null,
+    filters.rating == null ? null : `تقييم ${filters.rating}+`,
+    filters.price != null ? `سعر ${filters.price} ر.س` : null,
+  ].filter(Boolean);
 
   if (isLoading) {
     return (
@@ -49,38 +75,31 @@ export function WorkshopsResultsSection() {
         <p className="text-sm text-gray-600">
           <span className="font-medium text-primary">{totalWorkshops} ورشة</span>
           <span className="mx-1 text-gray-400">·</span>
-          في كل المدن
+          {filterHints.join(" · ")}
         </p>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">ترتيب حسب:</span>
-            <div className="flex flex-wrap gap-1">
-              {sortOptions.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setActiveSort(option)}
-                  className={`rounded-md px-3 py-1.5 text-xs transition ${
-                    activeSort === option
-                      ? "bg-primary text-white"
-                      : "border border-gray-200 text-gray-600 hover:border-primary/30"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={onToggleMapSearch}
+            aria-pressed={mapSearchOpen}
+            aria-controls="workshops-map-search"
+            className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-bold shadow-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 ${
+              mapSearchOpen
+                ? "bg-primary text-white shadow-primary/25 hover:bg-primary-hover"
+                : "bg-secondary text-white shadow-secondary/30 hover:bg-secondary-hover hover:shadow-lg hover:shadow-secondary/35"
+            }`}
+          >
+            <MapPinned className="size-4 shrink-0" aria-hidden="true" />
+            {mapSearchOpen ? "إخفاء الخريطة" : "البحث عبر الخريطة"}
+          </button>
 
           <div className="flex overflow-hidden rounded-md border border-gray-200">
             <button
               type="button"
               aria-label="عرض شبكي"
               onClick={() => setViewMode("grid")}
-              className={`flex h-8 w-9 items-center justify-center transition ${
-                viewMode === "grid" ? "bg-primary text-white" : "bg-white text-gray-500 hover:bg-gray-50"
-              }`}
+              className={`flex h-8 w-9 items-center justify-center transition ${viewMode === "grid" ? "bg-primary text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
             >
               <LayoutGrid className="size-4" />
             </button>
@@ -88,9 +107,7 @@ export function WorkshopsResultsSection() {
               type="button"
               aria-label="عرض قائمة"
               onClick={() => setViewMode("list")}
-              className={`flex h-8 w-9 items-center justify-center border-s border-gray-200 transition ${
-                viewMode === "list" ? "bg-primary text-white" : "bg-white text-gray-500 hover:bg-gray-50"
-              }`}
+              className={`flex h-8 w-9 items-center justify-center border-s border-gray-200 transition ${viewMode === "list" ? "bg-primary text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
             >
               <List className="size-4" />
             </button>
@@ -103,13 +120,7 @@ export function WorkshopsResultsSection() {
           <p className="text-sm font-medium text-primary">لا توجد ورش متاحة حالياً</p>
         </div>
       ) : (
-        <div
-          className={
-            viewMode === "grid"
-              ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
-              : "flex flex-col gap-4"
-          }
-        >
+        <div className={viewMode === "grid" ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
           {shops.map((shop) => (
             <WorkshopCard key={shop.id} shop={shop} isFavorite={isShopInFavorites(shop, favoriteLookup)} />
           ))}
@@ -132,10 +143,7 @@ export function WorkshopsResultsSection() {
             >
               <ChevronRight className="size-4" />
             </button>
-            <button
-              type="button"
-              className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm text-white"
-            >
+            <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm text-white">
               {currentPage}
             </button>
             <button

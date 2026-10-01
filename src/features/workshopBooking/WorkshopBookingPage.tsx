@@ -1,90 +1,62 @@
 import { useEffect, useId, useState, type ChangeEvent, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Bell, Check, ChevronDown, CloudUpload, X } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Bell, Check, CloudUpload, X } from "lucide-react";
 import heroBg from "../../assets/workshops-hero-bg.webp";
-import phoneImg from "../../assets/categories/phone.svg";
-import laptopImg from "../../assets/categories/laptop.svg";
-import tvImg from "../../assets/categories/tv.svg";
-import printerImg from "../../assets/categories/printer.svg";
-import gamesImg from "../../assets/categories/games.svg";
-import homeImg from "../../assets/categories/home.svg";
+import { SearchableSelect } from "../../components/SearchableSelect";
+import type { AuthValidationErrorResponse } from "../../types/authTypes";
+import { useGetAllServicesQuery, useGetDeviceModelsAllQuery, useStoreRepairRequestMutation } from "../auth/authApi";
 
 type BookingStep = 1 | 2 | 3;
 
-type DeviceCategory = {
-  id: string;
-  label: string;
-  image: string;
-};
-
-type UploadedFile = {
-  id: string;
-  name: string;
-  preview: string;
-};
-
 const STEPS = [
-  { id: 1 as const, label: "نوع الجهاز" },
+  { id: 1 as const, label: "بيانات الجهاز" },
   { id: 2 as const, label: "وصف المشكلة" },
   { id: 3 as const, label: "المراجعة" },
 ];
 
-const DEVICE_CATEGORIES: DeviceCategory[] = [
-  { id: "phones", label: "هواتف ذكية", image: phoneImg },
-  { id: "laptops", label: "لابتوب وكمبيوتر", image: laptopImg },
-  { id: "tvs", label: "تلفزيونات", image: tvImg },
-  { id: "printers", label: "طابعات وسكانر", image: printerImg },
-  { id: "games", label: "ألعاب إلكترونية", image: gamesImg },
-  { id: "home", label: "أجهزة منزلية", image: homeImg },
-];
-
-const SERVICE_OPTIONS = ["استبدال شاشة", "استبدال بطارية", "إصلاح منفذ الشحن", "صيانة عامة", "تشخيص عطل"];
-
-const PROBLEM_TYPES = ["شاشة مكسورة", "لا يشحن", "بطء في الأداء", "مشكلة صوت", "مشكلة شبكة", "أخرى"];
-
-const INITIAL_UPLOADS: UploadedFile[] = [
-  {
-    id: "file-1",
-    name: "screen_damage_1.jpg",
-    preview: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop",
-  },
-  {
-    id: "file-2",
-    name: "back_case.jpg",
-    preview: "https://images.unsplash.com/photo-1592890288564-766bd6c72716?w=200&h=200&fit=crop",
-  },
-];
-
-const CONTACT_DEFAULTS = {
-  name: "محمد الأحمدي",
-  phone: "+966 5X XXX XXXX",
-  city: "الرياض - حي العليا",
-};
-
-const SUCCESS_WORKSHOP_NAME = "ورشة التقنية المتقدمة";
+const EMPTY_DEVICE_MODELS: never[] = [];
+const EMPTY_SERVICES: never[] = [];
 
 function WorkshopBookingPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const brandModelId = useId();
   const serviceId = useId();
-  const problemTypeId = useId();
+  const addressId = useId();
   const descriptionId = useId();
-  const termsId = useId();
   const uploadId = useId();
   const successTitleId = useId();
   const successDescId = useId();
 
+  const shopId = searchParams.get("shop_id") ?? "";
+  const shopName = searchParams.get("shop_name") ?? "";
+
   const [step, setStep] = useState<BookingStep>(1);
-  const [selectedDeviceId, setSelectedDeviceId] = useState("tvs");
-  const [brandModel, setBrandModel] = useState("");
-  const [service, setService] = useState(SERVICE_OPTIONS[0]);
-  const [problemType, setProblemType] = useState("");
+  const [deviceModelId, setDeviceModelId] = useState("");
+  const [serviceIdValue, setServiceIdValue] = useState("");
+  const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
-  const [uploads, setUploads] = useState<UploadedFile[]>(INITIAL_UPLOADS);
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [image, setImage] = useState<{ file: File; preview: string } | null>(null);
+  const [submitError, setSubmitError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const selectedDevice = DEVICE_CATEGORIES.find((item) => item.id === selectedDeviceId);
+  const { data: deviceModelsData, isLoading: isDeviceModelsLoading, isFetching: isDeviceModelsFetching, isError: isDeviceModelsError } = useGetDeviceModelsAllQuery();
+  const { data: servicesData, isLoading: isServicesLoading, isFetching: isServicesFetching, isError: isServicesError } = useGetAllServicesQuery();
+  const [storeRepairRequest, { isLoading: isSubmitting }] = useStoreRepairRequestMutation();
+
+  const deviceModels = deviceModelsData?.data ?? EMPTY_DEVICE_MODELS;
+  const services = servicesData?.data ?? EMPTY_SERVICES;
+
+  const deviceModelOptions = deviceModels.map((model) => ({
+    value: String(model.id),
+    label: [model.brand_name, model.name].filter(Boolean).join(" - "),
+  }));
+  const serviceOptions = services.map((item) => ({ value: String(item.id), label: item.name }));
+
+  const selectedDeviceLabel = deviceModelOptions.find((option) => option.value === deviceModelId)?.label ?? "";
+  const selectedServiceLabel = serviceOptions.find((option) => option.value === serviceIdValue)?.label ?? "";
+  const canGoNextFromStepOne = deviceModelId !== "" && serviceIdValue !== "" && address.trim() !== "";
+  const canGoNextFromStepTwo = description.trim() !== "";
 
   useEffect(() => {
     if (!showSuccessModal) return;
@@ -106,8 +78,13 @@ function WorkshopBookingPage() {
   }, [showSuccessModal, navigate]);
 
   function goNext() {
-    if (step === 1) setStep(2);
-    else if (step === 2) setStep(3);
+    if (step === 1) {
+      if (!canGoNextFromStepOne) return;
+      setStep(2);
+    } else if (step === 2) {
+      if (!canGoNextFromStepTwo) return;
+      setStep(3);
+    }
   }
 
   function goPrev() {
@@ -116,27 +93,44 @@ function WorkshopBookingPage() {
   }
 
   function handleUploadChange(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []);
-    if (files.length === 0) return;
-
-    const nextFiles = files.map((file, index) => ({
-      id: `upload-${Date.now()}-${index}`,
-      name: file.name,
-      preview: URL.createObjectURL(file),
-    }));
-
-    setUploads((prev) => [...prev, ...nextFiles]);
+    const file = event.target.files?.[0];
     event.target.value = "";
+    if (!file) return;
+
+    setImage((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return { file, preview: URL.createObjectURL(file) };
+    });
   }
 
-  function removeUpload(id: string) {
-    setUploads((prev) => prev.filter((file) => file.id !== id));
+  function removeImage() {
+    setImage((prev) => {
+      if (prev) URL.revokeObjectURL(prev.preview);
+      return null;
+    });
   }
 
-  function handleConfirm(event: FormEvent) {
+  async function handleConfirm(event: FormEvent) {
     event.preventDefault();
-    if (!acceptedTerms) return;
-    setShowSuccessModal(true);
+    if (isSubmitting) return;
+
+    setSubmitError("");
+
+    const formData = new FormData();
+    formData.append("shop_id", shopId);
+    formData.append("device_model_id", deviceModelId);
+    formData.append("service_id", serviceIdValue);
+    formData.append("description", description.trim());
+    formData.append("address", address.trim());
+    if (image) formData.append("image", image.file);
+
+    try {
+      await storeRepairRequest(formData).unwrap();
+      setShowSuccessModal(true);
+    } catch (error) {
+      const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
+      setSubmitError(errorData?.message || "تعذر إرسال طلب الحجز، حاول مرة أخرى.");
+    }
   }
 
   function handleContinue() {
@@ -144,31 +138,33 @@ function WorkshopBookingPage() {
     navigate("/workshops");
   }
 
-  const reviewDeviceValue = `${selectedDevice?.label ?? "—"} - ${brandModel.trim() || "آيفون 14 برو"}`;
-  const successDeviceValue = `${selectedDevice?.label ?? "—"} · ${brandModel.trim() || "آيفون 15 برو"}`;
+  const deviceValue = selectedDeviceLabel || "—";
+  const serviceValue = selectedServiceLabel || "—";
 
   const reviewRows = [
     {
       label: "الجهاز",
-      value: reviewDeviceValue,
+      value: deviceValue,
     },
     {
-      label: "المشكلة",
-      value: problemType || "شاشة مكسورة",
+      label: "الخدمة",
+      value: serviceValue,
+    },
+    {
+      label: "العنوان",
+      value: address.trim() || "—",
     },
     {
       label: "الوصف",
-      value: description.trim() || "الشاشة تحطمت بعد السقوط وأجزاء الزجاج ظاهرة",
+      value: description.trim() || "—",
     },
-    { label: "الاسم", value: CONTACT_DEFAULTS.name },
-    { label: "رقم الجوال", value: CONTACT_DEFAULTS.phone },
-    { label: "المدينة", value: CONTACT_DEFAULTS.city },
+    { label: "الصورة", value: image ? image.file.name : "بدون صورة" },
   ];
 
   const successRows = [
-    { label: "الورشة", value: SUCCESS_WORKSHOP_NAME },
-    { label: "الجهاز", value: successDeviceValue },
-    { label: "الخدمة", value: service || SERVICE_OPTIONS[0] },
+    ...(shopName ? [{ label: "الورشة", value: shopName }] : []),
+    { label: "الجهاز", value: deviceValue },
+    { label: "الخدمة", value: serviceValue },
   ];
 
   return (
@@ -228,64 +224,87 @@ function WorkshopBookingPage() {
         <section className="mt-8 rounded-xl border border-[#f0f0f0] bg-white p-4 shadow-sm sm:p-6">
           {step === 1 ? (
             <div className="space-y-6">
-              <h2 className="text-xl font-bold text-[#0a0a0a]">اختر نوع الجهاز</h2>
-
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="radiogroup" aria-label="نوع الجهاز">
-                {DEVICE_CATEGORIES.map((category) => {
-                  const selected = selectedDeviceId === category.id;
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      role="radio"
-                      aria-checked={selected}
-                      onClick={() => setSelectedDeviceId(category.id)}
-                      className="flex flex-col items-center gap-3 rounded-lg bg-[#fff8f2] px-3 py-5 transition hover:ring-1 hover:ring-secondary/40"
-                    >
-                      <img src={category.image} alt="" className="size-10 object-contain" aria-hidden="true" />
-                      <span className="text-center text-xs font-medium text-primary sm:text-sm">{category.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <h2 className="text-xl font-bold text-[#0a0a0a]">بيانات الجهاز</h2>
 
               <div>
                 <label htmlFor={brandModelId} className="mb-2 block text-sm font-medium text-[#333]">
                   الماركة والموديل
                 </label>
-                <input
-                  id={brandModelId}
-                  type="text"
-                  value={brandModel}
-                  onChange={(event) => setBrandModel(event.target.value)}
-                  placeholder="مثال: آيفون 14 برو"
-                  className="w-full rounded-lg border border-[#e5e5e5] bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-secondary"
-                />
+
+                {isDeviceModelsError ? (
+                  <p className="text-sm text-red-600" role="alert">
+                    تعذر تحميل الأجهزة، حاول تحديث الصفحة.
+                  </p>
+                ) : (
+                  <SearchableSelect
+                    id={brandModelId}
+                    value={deviceModelId}
+                    options={deviceModelOptions}
+                    onChange={setDeviceModelId}
+                    disabled={isDeviceModelsLoading}
+                    placeholder={isDeviceModelsLoading ? "جاري تحميل الأجهزة..." : "ابحث عن الجهاز أو اختره..."}
+                    emptyMessage="لا توجد أجهزة مطابقة"
+                  />
+                )}
+
+                {isDeviceModelsFetching && !isDeviceModelsLoading ? (
+                  <p className="mt-1 text-xs text-[#999]" role="status">
+                    جاري تحديث قائمة الأجهزة...
+                  </p>
+                ) : null}
               </div>
 
               <div>
                 <label htmlFor={serviceId} className="mb-2 block text-sm font-medium text-[#333]">
                   الخدمة المطلوبة
                 </label>
-                <div className="relative">
-                  <select
+
+                {isServicesError ? (
+                  <p className="text-sm text-red-600" role="alert">
+                    تعذر تحميل الخدمات، حاول تحديث الصفحة.
+                  </p>
+                ) : (
+                  <SearchableSelect
                     id={serviceId}
-                    value={service}
-                    onChange={(event) => setService(event.target.value)}
-                    className="w-full appearance-none rounded-lg border border-[#e5e5e5] bg-white px-4 py-3 pe-10 text-sm text-primary outline-none transition focus:border-secondary"
-                  >
-                    {SERVICE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-[#999]" aria-hidden="true" />
-                </div>
+                    value={serviceIdValue}
+                    options={serviceOptions}
+                    onChange={setServiceIdValue}
+                    disabled={isServicesLoading}
+                    placeholder={isServicesLoading ? "جاري تحميل الخدمات..." : "ابحث عن الخدمة أو اخترها..."}
+                    emptyMessage="لا توجد خدمات مطابقة"
+                  />
+                )}
+
+                {isServicesFetching && !isServicesLoading ? (
+                  <p className="mt-1 text-xs text-[#999]" role="status">
+                    جاري تحديث قائمة الخدمات...
+                  </p>
+                ) : null}
               </div>
 
-              <div className="flex justify-end pt-2">
-                <button type="button" onClick={goNext} className="min-w-50 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover">
+              <div>
+                <label htmlFor={addressId} className="mb-2 block text-sm font-medium text-[#333]">
+                  العنوان
+                </label>
+                <input
+                  id={addressId}
+                  type="text"
+                  value={address}
+                  onChange={(event) => setAddress(event.target.value)}
+                  placeholder="مثال: الرياض - حي العليا - شارع التخصصي"
+                  autoComplete="street-address"
+                  className="w-full rounded-lg border border-[#e5e5e5] bg-white px-4 py-3 text-sm text-primary outline-none transition focus:border-secondary"
+                />
+              </div>
+
+              <div className="flex flex-col items-end gap-2 pt-2">
+                {!canGoNextFromStepOne ? <p className="text-xs text-[#999]">اختر الجهاز والخدمة وأدخل العنوان للمتابعة</p> : null}
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={!canGoNextFromStepOne}
+                  className="min-w-50 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
                   التالي
                 </button>
               </div>
@@ -295,28 +314,6 @@ function WorkshopBookingPage() {
           {step === 2 ? (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-[#0a0a0a]">صف المشكلة</h2>
-
-              <div>
-                <label htmlFor={problemTypeId} className="mb-2 block text-sm font-medium text-[#333]">
-                  نوع المشكلة
-                </label>
-                <div className="relative">
-                  <select
-                    id={problemTypeId}
-                    value={problemType}
-                    onChange={(event) => setProblemType(event.target.value)}
-                    className="w-full appearance-none rounded-lg border border-[#e5e5e5] bg-white px-4 py-3 pe-10 text-sm text-primary outline-none transition focus:border-secondary"
-                  >
-                    <option value="">اختر نوع المشكلة</option>
-                    {PROBLEM_TYPES.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-[#999]" aria-hidden="true" />
-                </div>
-              </div>
 
               <div>
                 <label htmlFor={descriptionId} className="mb-2 block text-sm font-medium text-[#333]">
@@ -335,39 +332,41 @@ function WorkshopBookingPage() {
               <div>
                 <label htmlFor={uploadId} className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-secondary/50 bg-[#fffaf6] px-4 py-10 text-center transition hover:bg-[#fff4eb]">
                   <CloudUpload className="size-10 text-secondary" aria-hidden="true" />
-                  <span className="mt-3 text-sm font-medium text-primary">اسحب الصور أو الفيديو هنا</span>
-                  <span className="mt-1 text-xs text-[#999]">أقصى حجم للملف: ٢٠ ميغابايت (صيغ مدعومة: JPG, PNG, MP4)</span>
+                  <span className="mt-3 text-sm font-medium text-primary">أضف صورة توضح المشكلة</span>
+                  <span className="mt-1 text-xs text-[#999]">صورة واحدة (صيغ مدعومة: JPG, PNG)</span>
                 </label>
-                <input id={uploadId} type="file" accept="image/*,video/mp4" multiple className="sr-only" onChange={handleUploadChange} />
+                <input id={uploadId} type="file" accept="image/*" className="sr-only" onChange={handleUploadChange} />
               </div>
 
-              {uploads.length > 0 ? (
+              {image ? (
                 <div>
-                  <p className="mb-3 text-sm font-medium text-[#666]">الملفات المرفوعة حالياً</p>
-                  <ul className="flex flex-wrap gap-3">
-                    {uploads.map((file) => (
-                      <li key={file.id} className="relative w-24">
-                        <img src={file.preview} alt="" className="aspect-square w-full rounded-md object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeUpload(file.id)}
-                          className="absolute inset-s-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75"
-                          aria-label={`حذف ${file.name}`}
-                        >
-                          <X className="size-3" aria-hidden="true" />
-                        </button>
-                        <p className="mt-1 truncate text-[11px] text-[#777]">{file.name}</p>
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="mb-3 text-sm font-medium text-[#666]">الصورة المرفوعة</p>
+                  <div className="relative w-24">
+                    <img src={image.preview} alt="" className="aspect-square w-full rounded-md object-cover" />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute inset-s-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/75"
+                      aria-label={`حذف ${image.file.name}`}
+                    >
+                      <X className="size-3" aria-hidden="true" />
+                    </button>
+                    <p className="mt-1 truncate text-[11px] text-[#777]">{image.file.name}</p>
+                  </div>
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-between">
+              <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
                 <button type="button" onClick={goPrev} className="min-w-50 rounded-lg bg-[#f3f3f3] px-8 py-2.5 text-sm font-semibold text-primary transition hover:bg-[#ebebeb]">
                   السابق
                 </button>
-                <button type="button" onClick={goNext} className="min-w-50 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover">
+                {!canGoNextFromStepTwo ? <p className="text-xs text-[#999]">أدخل وصف المشكلة للمتابعة</p> : null}
+                <button
+                  type="button"
+                  onClick={goNext}
+                  disabled={!canGoNextFromStepTwo}
+                  className="min-w-50 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
                   التالي
                 </button>
               </div>
@@ -387,17 +386,28 @@ function WorkshopBookingPage() {
                 ))}
               </dl>
 
-              <label htmlFor={termsId} className="flex cursor-pointer items-start gap-3 rounded-lg bg-[#fff4eb] px-4 py-3 text-sm text-primary">
-                <input id={termsId} type="checkbox" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 size-4 accent-secondary" />
-                <span>أوافق على شروط الخدمة وسياسة الخصوصية</span>
-              </label>
+              {!shopId ? (
+                <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
+                  لم يتم تحديد الورشة. اختر ورشة من صفحة الورشات ثم اضغط «احجز موعد».
+                </p>
+              ) : null}
+
+              {submitError ? (
+                <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+                  {submitError}
+                </p>
+              ) : null}
 
               <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-between">
                 <button type="button" onClick={goPrev} className="min-w-50 rounded-lg bg-[#f3f3f3] px-8 py-2.5 text-sm font-semibold text-primary transition hover:bg-[#ebebeb]">
                   السابق
                 </button>
-                <button type="submit" disabled={!acceptedTerms} className="min-w-50 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50">
-                  تأكيد الطلب
+                <button
+                  type="submit"
+                  disabled={!shopId || isSubmitting}
+                  className="min-w-50 rounded-lg bg-primary px-8 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmitting ? "جاري الإرسال..." : "تأكيد الطلب"}
                 </button>
               </div>
             </form>

@@ -2,6 +2,8 @@ import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown } from "lucide-react";
 import SuccessToast from "../../components/SuccessToast";
+import type { AuthValidationErrorResponse } from "../../types/authTypes";
+import { useStoreContactMessageMutation } from "../auth/authApi";
 import heroBg from "../../assets/contact/hero.jpg";
 import mapImg from "../../assets/contact/map.png";
 import phoneIcon from "../../assets/contact/phone.svg";
@@ -70,14 +72,51 @@ function ContactPage() {
   const [message, setMessage] = useState("");
   const [openFaqId, setOpenFaqId] = useState<string | null>(FAQS[0].id);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({
+    full_name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [storeContactMessage, { isLoading: isSubmitting }] = useStoreContactMessageMutation();
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setSuccessOpen(true);
-    setFullName("");
-    setEmail("");
-    setSubject(SUBJECT_OPTIONS[0]);
-    setMessage("");
+    setSubmitError("");
+    setFieldErrors({ full_name: "", email: "", subject: "", message: "" });
+
+    try {
+      const result = await storeContactMessage({
+        full_name: fullName.trim(),
+        email: email.trim(),
+        subject,
+        message: message.trim(),
+      }).unwrap();
+
+      setSuccessMessage(result.message || "شكراً لتواصلك معنا، سنرد عليك في أقرب وقت.");
+      setSuccessOpen(true);
+      setFullName("");
+      setEmail("");
+      setSubject(SUBJECT_OPTIONS[0]);
+      setMessage("");
+    } catch (error) {
+      const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
+      const errors = errorData?.errors;
+
+      if (errors) {
+        setFieldErrors({
+          full_name: errors.full_name?.[0] ?? "",
+          email: errors.email?.[0] ?? "",
+          subject: errors.subject?.[0] ?? "",
+          message: errors.message?.[0] ?? "",
+        });
+        return;
+      }
+
+      setSubmitError(errorData?.message || "تعذر إرسال الرسالة، حاول مرة أخرى.");
+    }
   }
 
   function toggleFaq(id: string) {
@@ -116,6 +155,12 @@ function ContactPage() {
           <form onSubmit={handleSubmit} className="rounded-2xl border border-[#e5e7eb] bg-white p-6 sm:p-8">
             <h2 className="text-xl font-bold text-[#0a0a0a]">أرسل لنا رسالة مباشرة</h2>
 
+            {submitError ? (
+              <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                {submitError}
+              </p>
+            ) : null}
+
             <div className="mt-6 space-y-4">
               <div>
                 <label htmlFor={fullNameId} className="mb-2 block text-sm text-[#0a0a0a] sm:text-base">
@@ -128,8 +173,9 @@ function ContactPage() {
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
                   placeholder="الاسم كامل"
-                  className="w-full rounded border border-[#e5e5e5] px-3 py-3 text-sm text-primary outline-none transition placeholder:text-[#a3a3a3] focus:border-secondary"
+                  className={`w-full rounded border px-3 py-3 text-sm text-primary outline-none transition placeholder:text-[#a3a3a3] focus:border-secondary ${fieldErrors.full_name ? "border-red-500" : "border-[#e5e5e5]"}`}
                 />
+                {fieldErrors.full_name ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.full_name}</p> : null}
               </div>
 
               <div>
@@ -143,8 +189,9 @@ function ContactPage() {
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   placeholder="البريد الالكتروني"
-                  className="w-full rounded border border-[#e5e5e5] px-3 py-3 text-sm text-primary outline-none transition placeholder:text-[#a3a3a3] focus:border-secondary"
+                  className={`w-full rounded border px-3 py-3 text-sm text-primary outline-none transition placeholder:text-[#a3a3a3] focus:border-secondary ${fieldErrors.email ? "border-red-500" : "border-[#e5e5e5]"}`}
                 />
+                {fieldErrors.email ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.email}</p> : null}
               </div>
 
               <div>
@@ -156,7 +203,7 @@ function ContactPage() {
                     id={subjectId}
                     value={subject}
                     onChange={(event) => setSubject(event.target.value)}
-                    className="w-full appearance-none rounded border border-[#e5e5e5] px-3 py-3 pe-10 text-sm text-primary outline-none transition focus:border-secondary"
+                    className={`w-full appearance-none rounded border px-3 py-3 pe-10 text-sm text-primary outline-none transition focus:border-secondary ${fieldErrors.subject ? "border-red-500" : "border-[#e5e5e5]"}`}
                   >
                     {SUBJECT_OPTIONS.map((option) => (
                       <option key={option} value={option}>
@@ -166,11 +213,12 @@ function ContactPage() {
                   </select>
                   <ChevronDown className="pointer-events-none absolute inset-e-3 top-1/2 size-4 -translate-y-1/2 text-[#999]" aria-hidden="true" />
                 </div>
+                {fieldErrors.subject ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.subject}</p> : null}
               </div>
 
               <div>
                 <label htmlFor={messageId} className="mb-2 block text-sm text-[#0a0a0a] sm:text-base">
-                  الموضوع
+                  الرسالة
                 </label>
                 <textarea
                   id={messageId}
@@ -179,13 +227,14 @@ function ContactPage() {
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder="كيف يمكننا مساعدتك اليوم؟"
-                  className="w-full resize-y rounded border border-[#e5e5e5] px-3 py-3 text-sm text-primary outline-none transition placeholder:text-[#a3a3a3] focus:border-secondary"
+                  className={`w-full resize-y rounded border px-3 py-3 text-sm text-primary outline-none transition placeholder:text-[#a3a3a3] focus:border-secondary ${fieldErrors.message ? "border-red-500" : "border-[#e5e5e5]"}`}
                 />
+                {fieldErrors.message ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.message}</p> : null}
               </div>
             </div>
 
-            <button type="submit" className="mt-6 w-full rounded bg-primary px-6 py-3 text-xs font-bold text-white transition hover:bg-primary-hover sm:text-sm">
-              إرسال الرسالة
+            <button type="submit" disabled={isSubmitting} className="mt-6 w-full rounded bg-primary px-6 py-3 text-xs font-bold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-70 sm:text-sm">
+              {isSubmitting ? "جاري الإرسال..." : "إرسال الرسالة"}
             </button>
           </form>
 
@@ -249,7 +298,7 @@ function ContactPage() {
         </div>
       </section>
 
-      <SuccessToast open={successOpen} title="تم الإرسال بنجاح" message="شكراً لتواصلك معنا، سنرد عليك في أقرب وقت." onClose={() => setSuccessOpen(false)} />
+      <SuccessToast open={successOpen} title="تم الإرسال بنجاح" message={successMessage} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }

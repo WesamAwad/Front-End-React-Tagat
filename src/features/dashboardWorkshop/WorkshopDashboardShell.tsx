@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { startShopRepairRequestListener } from "../../services/listenShopRepairRequests";
+import { useAppSelector } from "../../store/hooks";
 import { useWorkshopOwnerSession } from "./hooks/useWorkshopOwnerSession";
 import { Sidebar } from "./sidebar/Sidebar";
 import { WorkshopHeader } from "./WorkshopHeader";
@@ -9,7 +11,24 @@ type WorkshopDashboardShellProps = {
 
 export function WorkshopDashboardShell({ children }: WorkshopDashboardShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const user = useAppSelector((state) => state.auth.user);
   const { displayName, initials, handleLogout } = useWorkshopOwnerSession();
+
+  useEffect(() => {
+    console.log("🔍 Repair listener effect:", {
+      userId: user?.id,
+      role: user?.role,
+    });
+
+    if (user?.role !== "shopOwner" || user.id == null || user.id === "") {
+      console.log("❌ Repair listener skipped");
+      return;
+    }
+
+    console.log("✅ Starting repair listener:", user.id);
+
+    return startShopRepairRequestListener(user.id);
+  }, [user?.id, user?.role]);
 
   useEffect(() => {
     document.body.style.overflow = isSidebarOpen ? "hidden" : "";

@@ -35,6 +35,22 @@ export const mockWorkshopDetails: WorkshopDetails = {
     { id: "3", name: "شاشة آيباد", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 350, quantity: 3, image: "", isAvailable: true },
     { id: "4", name: "كاميرا خلفية", subtitle: "قطعة أصلية · ضمان 6 أشهر", price: 150, quantity: 12, image: "", isAvailable: true },
   ],
+  latitude: "24.7115",
+  longitude: "46.6745",
+  detailedAddress: "طريق الملك فهد، حي العليا، الرياض 11564",
+  addressNote: "بجانب برج المملكة — الدور الأرضي",
+  workingHours: [
+    { day: "sunday", from: "09:00", to: "19:00" },
+    { day: "monday", from: "09:00", to: "19:00" },
+    { day: "tuesday", from: "09:00", to: "19:00" },
+    { day: "wednesday", from: "09:00", to: "19:00" },
+    { day: "thursday", from: "09:00", to: "17:00" },
+    { day: "saturday", from: "10:00", to: "16:00" },
+  ],
+  phone: "+966 55 XXX XXXX",
+  whatsapp: "+966 55 XXX XXXX",
+  email: "info@techadvanced.sa",
+  website: "techadvanced.sa",
   reviewSummary: {
     overallRating: 4.8,
     categoryScores: [

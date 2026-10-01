@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react";
-import { WorkshopsFiltersSidebar } from "./components/WorkshopsFiltersSidebar";
+import { WorkshopsFiltersSidebar, type WorkshopsUiFilters } from "./components/WorkshopsFiltersSidebar";
 import { WorkshopsResultsSection } from "./components/WorkshopsResultsSection";
 
-export function WorkshopsBrowseSection() {
+type WorkshopsBrowseSectionProps = {
+  filters: WorkshopsUiFilters;
+  onFiltersChange: (filters: WorkshopsUiFilters) => void;
+  mapSearchOpen: boolean;
+  onToggleMapSearch: () => void;
+};
+
+export function WorkshopsBrowseSection({ filters, onFiltersChange, mapSearchOpen, onToggleMapSearch }: WorkshopsBrowseSectionProps) {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   return (
@@ -31,18 +38,18 @@ export function WorkshopsBrowseSection() {
 
             {mobileFiltersOpen ? (
               <div id="workshops-mobile-filters" className="mt-3">
-                <WorkshopsFiltersSidebar compact showHeader={false} />
+                <WorkshopsFiltersSidebar compact showHeader={false} filters={filters} onFiltersChange={onFiltersChange} />
               </div>
             ) : null}
           </div>
 
           <div className="hidden lg:block lg:sticky lg:top-24">
-            <WorkshopsFiltersSidebar />
+            <WorkshopsFiltersSidebar filters={filters} onFiltersChange={onFiltersChange} />
           </div>
         </div>
 
         <div className="order-2 min-w-0 flex-1 lg:order-1" dir="rtl">
-          <WorkshopsResultsSection />
+          <WorkshopsResultsSection filters={filters} mapSearchOpen={mapSearchOpen} onToggleMapSearch={onToggleMapSearch} />
         </div>
       </div>
     </section>

@@ -16,25 +16,17 @@ const categories = [
 
 export function CategoriesSection() {
   return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div className="text-end">
-          <p className="text-start text-sm font-medium text-secondary">تصفح حسب الفئة</p>
-          <h2 className="mt-1 text-xl font-bold text-primary sm:text-2xl">ما الجهاز الذي تريد إصلاحه؟</h2>
-        </div>
-        <button type="button" className="cursor-pointer text-sm font-medium text-primary/60 transition hover:text-primary">
-          عرض الكل
-        </button>
-      </div>
+    <section className="mx-auto max-w-7xl px-4 pt-24 pb-16 sm:px-6 sm:pt-28 lg:px-8">
+      <h2 className="mb-8 text-xl font-bold text-primary sm:text-2xl">أمثلة على الأجهزة التي نقوم بإصلاحها</h2>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {categories.map((cat) => (
-          <button key={cat.label} type="button" className="group flex cursor-pointer flex-col items-center gap-3 rounded-xl bg-primary-light p-10 transition hover:ring-2 hover:ring-secondary">
-            <img src={cat.image} alt="" className="h-12 w-12 object-contain transition group-hover:scale-105" aria-hidden="true" />
+          <li key={cat.label} className="flex flex-col items-center gap-3 rounded-xl bg-primary-light p-10">
+            <img src={cat.image} alt="" className="h-12 w-12 object-contain" aria-hidden="true" />
             <span className="text-sm font-medium text-primary">{cat.label}</span>
-          </button>
+          </li>
         ))}
-      </div>
+      </ul>
     </section>
   );
 }

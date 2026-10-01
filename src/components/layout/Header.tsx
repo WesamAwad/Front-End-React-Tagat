@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Heart, KeyRound, LogOut, Menu, X } from "lucide-react";
+import { ChevronDown, Heart, KeyRound, LogOut, Menu, UserRound, X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout } from "../../features/auth/authSlice";
+import { isCustomerSession } from "../../features/auth/authRoles";
 import { useLogoutClientMutation } from "../../features/auth/authApi";
 import { useFavoriteShopLookup } from "../../features/favorites/useFavoriteShopLookup";
+import { NotificationsBell } from "../../features/notifications/NotificationsBell";
 import logo from "../../assets/SwiftFix-Logo.svg";
 
 const navLinks = [
@@ -20,11 +22,13 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) => `text-sm font-medi
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector((state) => state.auth.user);
+  const isCustomer = isCustomerSession(user?.role);
   const [logoutClient] = useLogoutClientMutation();
   const { count: favoritesCount } = useFavoriteShopLookup();
 
@@ -73,22 +77,42 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            to="/favorites"
-            aria-label={favoritesCount > 0 ? `المفضلة (${favoritesCount})` : "المفضلة"}
-            className="relative inline-flex size-10 items-center justify-center rounded-lg text-primary transition hover:bg-primary-light hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
-          >
-            <Heart className="size-5" aria-hidden="true" />
-            {favoritesCount > 0 ? (
-              <span className="absolute -top-0.5 -inset-e-0.5 flex min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold leading-4 text-white">
-                {favoritesCount > 9 ? "9+" : favoritesCount}
-              </span>
-            ) : null}
-          </Link>
+          {isCustomer ? (
+            <>
+              <Link
+                to="/favorites"
+                aria-label={favoritesCount > 0 ? `المفضلة (${favoritesCount})` : "المفضلة"}
+                className="relative inline-flex size-10 items-center justify-center rounded-lg text-primary transition hover:bg-primary-light hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
+              >
+                <Heart className="size-5" aria-hidden="true" />
+                {favoritesCount > 0 ? (
+                  <span className="absolute -top-0.5 -inset-e-0.5 flex min-w-5 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold leading-4 text-white">
+                    {favoritesCount > 9 ? "9+" : favoritesCount}
+                  </span>
+                ) : null}
+              </Link>
 
-          {user ? (
+              <NotificationsBell
+                isOpen={isNotificationsOpen}
+                onToggle={() => {
+                  setIsDropdownOpen(false);
+                  setIsNotificationsOpen((open) => !open);
+                }}
+                onClose={() => setIsNotificationsOpen(false)}
+              />
+            </>
+          ) : null}
+
+          {isCustomer && user ? (
             <div className="relative" ref={dropdownRef}>
-              <button type="button" onClick={() => setIsDropdownOpen((open) => !open)} className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary-light">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNotificationsOpen(false);
+                  setIsDropdownOpen((open) => !open);
+                }}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 transition hover:bg-primary-light"
+              >
                 <span className="hidden text-sm font-medium text-primary sm:inline">{user.first_name}</span>
                 <div className="flex size-8 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">{user.first_name[0]}</div>
                 <ChevronDown className={`size-4 text-primary/60 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
@@ -104,6 +128,14 @@ export function Header() {
                   </div>
 
                   <div className="py-1">
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary/80 transition hover:bg-primary-light"
+                    >
+                      <UserRound className="size-4" />
+                      ملفي الشخصي
+                    </Link>
                     <Link
                       to="/change-password"
                       state={{ from: location.pathname }}
@@ -169,25 +201,7 @@ export function Header() {
               </NavLink>
             ))}
 
-            <NavLink
-              to="/favorites"
-              className={({ isActive }) =>
-                `flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base font-medium transition ${isActive ? "bg-primary-light font-semibold text-secondary" : "text-primary/70 hover:bg-primary-light hover:text-primary"}`
-              }
-              onClick={closeMenu}
-            >
-              <span className="relative inline-flex">
-                <Heart className="size-4" aria-hidden="true" />
-                {favoritesCount > 0 ? (
-                  <span className="absolute -top-1.5 -inset-e-2 flex min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[9px] font-bold leading-3 text-white">
-                    {favoritesCount > 9 ? "9+" : favoritesCount}
-                  </span>
-                ) : null}
-              </span>
-              المفضلة
-            </NavLink>
-
-            {!user && (
+            {!isCustomer && (
               <div className="mt-3 flex flex-col gap-2 pt-3">
                 <Link to="/signup" className="rounded-lg border border-primary px-3 py-2.5 text-center text-base font-semibold text-primary transition hover:bg-primary-light" onClick={closeMenu}>
                   إنشاء الحساب

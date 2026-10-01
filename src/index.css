@@ -107,11 +107,56 @@
   animation: success-toast-slide 3.2s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.rich-text-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: right;
+  height: 0;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.rich-text-editor-content ul {
+  list-style: disc;
+  padding-inline-start: 1.25rem;
+}
+
+.rich-text-editor-content ol {
+  list-style: decimal;
+  padding-inline-start: 1.25rem;
+}
+
+.rich-text-editor-content p,
+.rich-text-editor-content ul,
+.rich-text-editor-content ol {
+  margin-block: 0.35rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .success-toast {
     animation: none;
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes ai-chat-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.ai-chat-panel {
+  animation: ai-chat-in 0.22s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-chat-panel {
+    animation: none;
   }
 }
 

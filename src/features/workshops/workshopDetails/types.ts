@@ -18,6 +18,12 @@ export type WorkshopSparePart = {
   isAvailable: boolean;
 };
 
+export type WorkshopWorkingHourRow = {
+  day: string;
+  from: string;
+  to: string;
+};
+
 export type WorkshopReviewCategoryScore = {
   label: string;
   score: number;
@@ -36,12 +42,15 @@ export type WorkshopReviewSummary = {
 
 export type WorkshopReview = {
   id: string;
+  userId?: string;
   authorName: string;
   rating: number;
   date: string;
-  serviceType: string;
-  device: string;
   text: string;
+  shopReply?: string | null;
+  repliedAt?: string | null;
+  serviceType?: string;
+  device?: string;
 };
 
 export type WorkshopDetailsTab = "services" | "spare-parts" | "location" | "reviews";
@@ -60,4 +69,13 @@ export type WorkshopDetails = Workshop & {
   spareParts: WorkshopSparePart[];
   reviewSummary: WorkshopReviewSummary;
   reviews: WorkshopReview[];
+  latitude: string;
+  longitude: string;
+  detailedAddress: string;
+  addressNote: string;
+  workingHours: WorkshopWorkingHourRow[];
+  phone: string;
+  whatsapp: string;
+  email: string;
+  website: string;
 };

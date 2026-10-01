@@ -21,16 +21,26 @@ import HomeWorkshopPage from "../features/dashboardWorkshop/pages/HomeWorkshopPa
 import OrdersWorkshopPage from "../features/dashboardWorkshop/pages/OrdersWorkshopPage";
 import SparePartsWorkshopPage from "../features/dashboardWorkshop/spareParts/SparePartsWorkshopPage";
 import SettingsWorkshopPage from "../features/dashboardWorkshop/pages/SettingsWorkshopPage";
+import SpecsWorkshopPage from "../features/dashboardWorkshop/specification/SpecsWorkshopPage";
 import ProfilePage from "../features/dashboardWorkshop/pages/ProfilePage";
+import ReviewsWorkshopPage from "../features/dashboardWorkshop/pages/ReviewsWorkshopPage";
+import ContactMessagesPage from "../features/admin/contactUs/ContactMessagesPage";
+import ComplaintsPage from "../features/admin/complaints/ComplaintsPage";
+import AdminReviewsPage from "../features/admin/reviews/AdminReviewsPage";
 import CountriesPage from "../features/admin/countries/CountriesPage";
 import CitiesPage from "../features/admin/cities/CitiesPage";
 import CompaniesPage from "../features/admin/companies/CompaniesPage";
 import DevicesPage from "../features/admin/devices/DevicesPage";
+import ServicesPage from "../features/admin/services/ServicesPage";
 import CategoriesPage from "../features/admin/categories/CategoriesPage";
 import ProductsPage from "../features/admin/products/ProductsPage";
 import WorkshopOwnerRequestsPage from "../features/admin/workshopOwnerRequests/WorkshopOwnerRequestsPage";
+import AdminWorkshopsPage from "../features/admin/workshop/workshops";
+import AdminHomePage from "../features/admin/AdminHomePage";
+import RolesPage from "../features/admin/roles/RolesPage";
 import ErrorPage from "../components/ErrorPage";
 import { GuestRoute } from "../features/auth/GuestRoute";
+import { RoleRoute } from "../features/auth/RoleRoute";
 
 export const router = createBrowserRouter([
   {
@@ -115,63 +125,110 @@ export const router = createBrowserRouter([
   },
 
   {
-    path: "/workshop-owner",
-    element: <DashboardLayout />,
+    element: <RoleRoute allow="shopOwner" />,
+    errorElement: <ErrorPage />,
     children: [
       {
-        index: true,
-        element: <HomeWorkshopPage />,
-      },
-      {
-        path: "orders",
-        element: <OrdersWorkshopPage />,
-      },
-      {
-        path: "spare-parts",
-        element: <SparePartsWorkshopPage />,
-      },
-      {
-        path: "settings",
-        element: <SettingsWorkshopPage />,
-      },
-      {
-        path: "profile",
-        element: <ProfilePage />,
+        path: "/workshop-owner",
+        element: <DashboardLayout />,
+        children: [
+          {
+            index: true,
+            element: <HomeWorkshopPage />,
+          },
+          {
+            path: "orders",
+            element: <OrdersWorkshopPage />,
+          },
+          {
+            path: "reviews",
+            element: <ReviewsWorkshopPage />,
+          },
+          {
+            path: "spare-parts",
+            element: <SparePartsWorkshopPage />,
+          },
+          {
+            path: "specs",
+            element: <SpecsWorkshopPage />,
+          },
+          {
+            path: "settings",
+            element: <SettingsWorkshopPage />,
+          },
+          {
+            path: "profile",
+            element: <ProfilePage />,
+          },
+        ],
       },
     ],
   },
   {
-    path: "/admin",
-    element: <DashboardLayout />,
+    element: <RoleRoute allow="admin" />,
     errorElement: <ErrorPage />,
     children: [
       {
-        path: "countries",
-        element: <CountriesPage />,
-      },
-      {
-        path: "cities",
-        element: <CitiesPage />,
-      },
-      {
-        path: "companies",
-        element: <CompaniesPage />,
-      },
-      {
-        path: "devices",
-        element: <DevicesPage />,
-      },
-      {
-        path: "categories",
-        element: <CategoriesPage />,
-      },
-      {
-        path: "products",
-        element: <ProductsPage />,
-      },
-      {
-        path: "workshop-owner-requests",
-        element: <WorkshopOwnerRequestsPage />,
+        path: "/admin",
+        element: <DashboardLayout />,
+        children: [
+          {
+            index: true,
+            element: <AdminHomePage />,
+          },
+          {
+            path: "contact-messages",
+            element: <ContactMessagesPage />,
+          },
+          {
+            path: "complaints",
+            element: <ComplaintsPage />,
+          },
+          {
+            path: "reviews",
+            element: <AdminReviewsPage />,
+          },
+          {
+            path: "countries",
+            element: <CountriesPage />,
+          },
+          {
+            path: "cities",
+            element: <CitiesPage />,
+          },
+          {
+            path: "companies",
+            element: <CompaniesPage />,
+          },
+          {
+            path: "devices",
+            element: <DevicesPage />,
+          },
+          {
+            path: "services",
+            element: <ServicesPage />,
+          },
+          {
+            path: "roles",
+            element: <RolesPage />,
+          },
+          {
+            path: "categories",
+            element: <CategoriesPage />,
+          },
+          {
+            path: "products",
+            element: <ProductsPage />,
+          },
+          {
+            path: "workshops",
+            element: <AdminWorkshopsPage />,
+          },
+          {
+            path: "workshop-owner-requests",
+            element: <WorkshopOwnerRequestsPage />,
+          },
+        ],
       },
     ],
   },

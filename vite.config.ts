@@ -6,7 +6,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    allowedHosts: ["aka-planning-tours-ben.trycloudflare.com"],
+    allowedHosts: ["hottest-intensity-encouraged-eligible.trycloudflare.com"],
   },
 });
 // import { defineConfig } from "vite";

@@ -1,14 +1,28 @@
 import { Fragment } from "react";
 import heroBg from "../../assets/Container.webp";
+import { useGetPlatformStatisticsQuery } from "../auth/authApi";
 
-const stats = [
-  { value: "+4.8", label: "تقييم ممتاز" },
-  { value: "+5,000", label: "تسجيل" },
-  { value: "+12,000", label: "إصلاح متكامل" },
-  { value: "+500", label: "ورشة موثقة" },
-];
+const STAT_LABELS = [
+  { key: "excellent_reviews_count", label: "تقييم ممتاز" },
+  { key: "customers_count", label: "تسجيل" },
+  { key: "completed_requests_count", label: "إصلاح متكامل" },
+  { key: "verified_shops_count", label: "ورشة موثقة" },
+] as const;
+
+function formatStatCount(value: number | undefined, isLoading: boolean) {
+  if (isLoading) return "—";
+  if (value == null || !Number.isFinite(value)) return "+0";
+  return `+${Math.trunc(value).toLocaleString("en-US")}`;
+}
 
 export function HeroSection() {
+  const { data, isLoading } = useGetPlatformStatisticsQuery();
+
+  const stats = STAT_LABELS.map((item) => ({
+    label: item.label,
+    value: formatStatCount(data?.[item.key], isLoading),
+  }));
+
   return (
     <section className="px-4 pt-6 sm:px-6 lg:px-8">
       <div className="relative mx-auto max-w-7xl overflow-hidden rounded-xl">
@@ -23,7 +37,7 @@ export function HeroSection() {
         </div>
 
         <div className="relative">
-          <div className="grid grid-cols-2 gap-y-6 px-6 pt-5 pb-13 sm:flex sm:items-center sm:justify-between sm:px-16">
+          <div className="grid grid-cols-2 gap-y-6 px-6 pt-5 pb-13 sm:flex sm:items-center sm:justify-between sm:px-16" aria-busy={isLoading}>
             {stats.map((stat, index) => (
               <Fragment key={stat.label}>
                 {index > 0 && <div className="hidden h-10 w-px bg-white/50 sm:block" />}

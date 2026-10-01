@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useAppSelector } from "../../store/hooks";
 import logo from "../../assets/SwiftFix-Logo2.png";
 import instagramIcon from "../../assets/footer/instagram.svg";
 import facebookIcon from "../../assets/footer/facebook.svg";
@@ -8,8 +9,6 @@ import xIcon from "../../assets/footer/x.svg";
 const companyLinks = [
   { label: "من نحن", to: "/about" },
   { label: "فريق العمل", to: "#" },
-  { label: "المدونة", to: "#" },
-  { label: "الوظائف", to: "#" },
 ];
 
 const servicesLinks = [
@@ -21,14 +20,13 @@ const servicesLinks = [
 
 const workshopsLinks = [
   { label: "انضم إلينا", to: "/signup/workshop" },
-  { label: "لوحة التحكم", to: "/workshop-owner" },
-  { label: "الأسعار والباقات", to: "#" },
+
   { label: "الدعم الفني", to: "/contact" },
 ];
 
 const contactLinks = [
   { label: "اتصل بنا", to: "/contact" },
-  { label: "مركز المساعدة", to: "#" },
+
   { label: "سياسة الخصوصية", to: "#" },
   { label: "الشروط والأحكام", to: "#" },
 ];
@@ -64,6 +62,10 @@ function FooterColumn({ title, links }: { title: string; links: { label: string;
 }
 
 export function Footer() {
+  const token = useAppSelector((state) => state.auth.token);
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const publicWorkshopLinks = token ? workshopsLinks.filter((link) => link.to !== "/signup/workshop") : workshopsLinks;
+  const workshopColumnLinks = role === "shopOwner" ? [{ label: "لوحة التحكم", to: "/workshop-owner" }, ...publicWorkshopLinks] : role === "admin" ? [{ label: "لوحة التحكم", to: "/admin" }, ...publicWorkshopLinks] : publicWorkshopLinks;
   return (
     <footer className="mt-10 w-full bg-primary sm:mt-12">
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-20">
@@ -87,7 +89,7 @@ export function Footer() {
 
           <FooterColumn title="الشركة" links={companyLinks} />
           <FooterColumn title="الخدمات" links={servicesLinks} />
-          <FooterColumn title="للورش" links={workshopsLinks} />
+          <FooterColumn title="للورش" links={workshopColumnLinks} />
           <FooterColumn title="التواصل" links={contactLinks} />
         </div>
 

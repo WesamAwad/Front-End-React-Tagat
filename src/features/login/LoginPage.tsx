@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import { useLoginClientMutation } from "../auth/authApi";
+import { extractRoleFromLoginResponse, getPostLoginPath } from "../auth/authRoles";
 import { setCredentials } from "../auth/authSlice";
 import { useAppDispatch } from "../../store/hooks";
 import type { AuthValidationErrorResponse } from "../../types/authTypes";
@@ -38,8 +39,20 @@ function LoginPage() {
         remember_me: rememberMe,
       }).unwrap();
 
-      dispatch(setCredentials({ user: result.data, token: result.token }));
-      navigate("/");
+      const role = extractRoleFromLoginResponse(result);
+
+      dispatch(
+        setCredentials({
+          user: {
+            id: result.data.id,
+            first_name: result.data.first_name,
+            last_name: result.data.last_name,
+            role,
+          },
+          token: result.token,
+        }),
+      );
+      navigate(getPostLoginPath(role));
     } catch (error) {
       const errorData = (error as { data?: AuthValidationErrorResponse })?.data;
       // console.log(error);

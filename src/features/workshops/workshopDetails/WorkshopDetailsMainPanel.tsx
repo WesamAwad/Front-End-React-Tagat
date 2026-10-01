@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { MapPin, Wrench } from "lucide-react";
+import { useGetShopReviewsQuery } from "../../auth/authApi";
 import { StarRating } from "../components/StarRating";
 import type { WorkshopDetails, WorkshopDetailsTab } from "./types";
+import { WorkshopLocationHoursTab } from "./WorkshopLocationHoursTab";
 import { WorkshopReviewsTab } from "./WorkshopReviewsTab";
 import { WorkshopServicesTab } from "./WorkshopServicesTab";
 import { WorkshopSparePartsTab } from "./WorkshopSparePartsTab";
@@ -19,6 +21,10 @@ const tabs: { id: WorkshopDetailsTab; label: string }[] = [
 
 export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelProps) {
   const [activeTab, setActiveTab] = useState<WorkshopDetailsTab>("services");
+  const { data: reviewsData } = useGetShopReviewsQuery(workshop.id, { skip: !workshop.id });
+
+  const rating = reviewsData?.average_rating ?? workshop.rating;
+  const reviewCount = reviewsData?.reviews_count ?? workshop.reviewCount;
 
   return (
     <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
@@ -33,9 +39,9 @@ export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelP
               <h1 className="text-lg font-bold wrap-break-words text-[#1a1a1a] sm:text-xl lg:text-2xl">{workshop.name}</h1>
               <div className="mt-2 flex flex-col gap-2 text-sm text-[#777] sm:mt-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-2">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <StarRating rating={workshop.rating} />
-                  <span className="text-xs text-primary">({workshop.rating})</span>
-                  <span className="text-sm text-[#999]">({workshop.reviewCount} تقييم)</span>
+                  <StarRating rating={rating} />
+                  <span className="text-xs text-primary">({rating.toFixed(1)})</span>
+                  <span className="text-sm text-[#999]">({reviewCount} تقييم)</span>
                 </div>
                 <span className="hidden text-[#ddd] sm:inline" aria-hidden="true">
                   |
@@ -105,15 +111,7 @@ export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelP
         <div className="p-4 sm:p-6" role="tabpanel">
           {activeTab === "services" ? <WorkshopServicesTab workshop={workshop} /> : null}
           {activeTab === "spare-parts" ? <WorkshopSparePartsTab workshop={workshop} /> : null}
-          {activeTab === "location" ? (
-            <div className="rounded-lg border border-primary/10 bg-primary-light/30 px-6 py-8">
-              <p className="text-sm font-medium text-primary">عنوان الورشة</p>
-              <p className="mt-2 flex items-start gap-2 text-sm text-gray-700">
-                <MapPin className="mt-0.5 size-4 shrink-0 text-secondary" aria-hidden="true" />
-                <span>{workshop.location}</span>
-              </p>
-            </div>
-          ) : null}
+          {activeTab === "location" ? <WorkshopLocationHoursTab workshop={workshop} /> : null}
           {activeTab === "reviews" ? <WorkshopReviewsTab workshop={workshop} /> : null}
         </div>
       </section>

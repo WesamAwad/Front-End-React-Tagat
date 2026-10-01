@@ -76,11 +76,15 @@ function ProfilePage() {
   const [statusError, setStatusError] = useState("");
   const hasHydratedProfile = useRef(false);
 
-  const { data: profileData, isLoading: isProfileLoading, isError: isProfileError } = useGetShopProfileQuery();
+  const { data: profileData, isLoading: isProfileLoading, error: profileError } = useGetShopProfileQuery();
   const [saveOrUpdateShopProfile, { isLoading: isSaving }] = useSaveOrUpdateShopProfileMutation();
   const [updateShopStatus, { isLoading: isUpdatingStatus }] = useUpdateShopStatusMutation();
   const shopId = profileData?.data?.id ?? "";
   const isShopOpen = (profileData?.data?.status ?? "open") === "open";
+  const profileLoadError =
+    profileError && typeof profileError === "object" && "data" in profileError
+      ? ((profileError.data as AuthValidationErrorResponse | undefined)?.message ?? "").trim()
+      : "";
 
   const applyCoverImage = (coverUrl: string | null) => {
     setCoverImageFile(null);
@@ -336,9 +340,9 @@ function ProfilePage() {
         </p>
       ) : null}
 
-      {isProfileError ? (
+      {profileLoadError ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          تعذر تحميل بيانات البروفايل، يمكنك تعبئة النموذج يدوياً والحفظ لاحقاً.
+          {profileLoadError}
         </p>
       ) : null}
 

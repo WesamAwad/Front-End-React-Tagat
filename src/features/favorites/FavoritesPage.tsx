@@ -2,20 +2,23 @@ import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGetAllPublicShopsQuery, useGetMyFavoritesQuery } from "../auth/authApi";
 import { useAppSelector } from "../../store/hooks";
+import { isCustomerSession } from "../auth/authRoles";
 import { mapFavoriteToPublicShop } from "./favoriteUtils";
 import { WorkshopCard } from "../workshops/components/WorkshopCard";
 
 function FavoritesPage() {
   const token = useAppSelector((state) => state.auth.token);
+  const role = useAppSelector((state) => state.auth.user?.role);
+  const canUseFavorites = Boolean(token) && isCustomerSession(role);
   const { data, isLoading, isError } = useGetMyFavoritesQuery(undefined, {
-    skip: !token,
+    skip: !canUseFavorites,
   });
   const { data: publicShopsData } = useGetAllPublicShopsQuery();
   const publicShops = publicShopsData?.data ?? [];
 
   const favorites = data?.favorites ?? [];
 
-  if (!token) {
+  if (!canUseFavorites) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
         <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-primary-light text-secondary">

@@ -10,6 +10,8 @@ export function resolveFavoriteShopId(favorite: FavoriteShop, publicShops: Publi
 }
 
 export function mapFavoriteToPublicShop(favorite: FavoriteShop, publicShops: PublicShop[] = []): PublicShop {
+  const matched = publicShops.find((shop) => shop.id === resolveFavoriteShopId(favorite, publicShops));
+
   return {
     id: resolveFavoriteShopId(favorite, publicShops),
     shop_name: favorite.shop_name,
@@ -18,7 +20,9 @@ export function mapFavoriteToPublicShop(favorite: FavoriteShop, publicShops: Pub
     city: favorite.city,
     district: favorite.district,
     street: favorite.street,
-    status: "",
+    status: matched?.status ?? "",
+    is_verified: matched?.is_verified ?? false,
+    average_rating: matched?.average_rating ?? 0,
     services: favorite.services.map((service) => service.service_name),
   };
 }

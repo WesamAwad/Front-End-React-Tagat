@@ -1,4 +1,6 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from "@reduxjs/toolkit/query";
+import { logout } from "./authSlice";
 import type {
   ClientLoginRequest,
   ClientLoginResponse,
@@ -45,10 +47,26 @@ import type {
   ShopProduct,
   GetAllShopProductsResponse,
   PublicShop,
+  GetAllPublicShopsParams,
   GetAllPublicShopsResponse,
+  StoreRepairRequestResponse,
+  RepairRequest,
+  RepairRequestCustomer,
+  RepairRequestNamedRef,
+  GetAllRepairRequestsResponse,
+  RepairRequestMutationResponse,
+  ContactMessage,
+  GetAllContactMessagesResponse,
+  StoreContactMessageRequest,
+  StoreContactMessageResponse,
+  ReplyContactMessageRequest,
+  ContactMessageMutationResponse,
+  CustomerNotification,
+  GetCustomerNotificationsResponse,
   PublicShopDetails,
   PublicShopDetailsService,
   PublicShopDetailsProduct,
+  PublicShopDetailsFeature,
   GetPublicShopDetailsResponse,
   AddFavoriteShopResponse,
   RemoveFavoriteShopResponse,
@@ -59,6 +77,41 @@ import type {
   ShopOwnerVerificationRequest,
   ShopOwnerVerificationStatus,
   GetShopOwnerVerificationDataResponse,
+  AdminShopOwner,
+  GetAdminShopOwnersResponse,
+  ShopFeature,
+  GetAllShopFeaturesResponse,
+  StoreShopFeatureRequest,
+  UpdateShopFeatureRequest,
+  ShopFeatureMutationResponse,
+  ShopReview,
+  ReviewUser,
+  GetShopReviewsResponse,
+  GetShopOwnerReviewsResponse,
+  StoreReviewRequest,
+  UpdateReviewRequest,
+  StoreReviewResponse,
+  ReviewMutationResponse,
+  ReplyShopReviewRequest,
+  ReplyShopReviewResponse,
+  ShopReviewsRatingDistribution,
+  PlatformReview,
+  PlatformStatistics,
+  SearchShopMapParams,
+  MapShopSearchProduct,
+  MapShopSearchResult,
+  AppRole,
+  GetAllRolesResponse,
+  GetRolesForSelectResponse,
+  RolePermission,
+  GetRolePermissionsResponse,
+  RoleMutationResponse,
+  Complaint,
+  GetAllComplaintsResponse,
+  StoreComplaintRequest,
+  StoreComplaintResponse,
+  ReplyComplaintRequest,
+  ComplaintMutationResponse,
 } from "../../types/authTypes";
 /** Start Mock API */
 import { mockLogin, mockLogout } from "./authMock";
@@ -230,6 +283,21 @@ function normalizePublicShopServices(value: unknown): string[] {
   return [];
 }
 
+function normalizePublicShopVerified(value: unknown): boolean {
+  if (value === true || value === 1 || value === "1") return true;
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    return normalized === "true" || normalized === "verified" || normalized === "موثق";
+  }
+  return false;
+}
+
+function normalizePublicShopAverageRating(value: unknown): number {
+  const rating = Number(value);
+  if (!Number.isFinite(rating) || rating < 0) return 0;
+  return Math.min(5, rating);
+}
+
 function normalizePublicShop(item: unknown): PublicShop | null {
   if (!item || typeof item !== "object") return null;
 
@@ -249,8 +317,35 @@ function normalizePublicShop(item: unknown): PublicShop | null {
     district: String(row.district ?? "").trim(),
     street: String(row.street ?? "").trim(),
     status: String(row.status ?? ""),
+    is_verified: normalizePublicShopVerified(row.is_verified ?? row.verified ?? row.is_shop_verified ?? row.shop_verified),
+    average_rating: normalizePublicShopAverageRating(row.average_rating ?? row.averageRating ?? row.rating),
     services: normalizePublicShopServices(row.services),
   };
+}
+
+function normalizePublicShopDetailsFeatures(value: unknown): PublicShopDetailsFeature[] {
+  const list = Array.isArray(value) ? value : value && typeof value === "object" && Array.isArray((value as { data?: unknown }).data) ? (value as { data: unknown[] }).data : [];
+
+  return list
+    .map((item, index): PublicShopDetailsFeature | null => {
+      if (typeof item === "string" || typeof item === "number") {
+        const feature = String(item).trim();
+        if (!feature) return null;
+        return { id: `feature-${index}`, feature };
+      }
+
+      if (!item || typeof item !== "object") return null;
+
+      const row = item as Record<string, unknown>;
+      const feature = String(row.feature_name ?? row.feature ?? row.name ?? row.title ?? row.text ?? "").trim();
+      if (!feature) return null;
+
+      return {
+        id: String(row.id ?? row.feature_id ?? `feature-${index}`),
+        feature,
+      };
+    })
+    .filter((item): item is PublicShopDetailsFeature => item !== null);
 }
 
 function normalizePublicShopDetailsServices(value: unknown): PublicShopDetailsService[] {
@@ -303,27 +398,17 @@ function normalizePublicShopDetailsProducts(value: unknown): PublicShopDetailsPr
       const brandRecord = brand && typeof brand === "object" ? (brand as Record<string, unknown>) : null;
 
       const id = String(row.shop_product_id ?? row.id ?? row.product_id ?? `product-${index}`);
-      const name =
-        String(row.product_name ?? "").trim() ||
-        pickNestedName(productRecord, ["product_name", "name", "name_ar", "title"]) ||
-        String(row.name ?? row.title ?? "").trim() ||
-        "قطعة غيار";
+      const name = String(row.product_name ?? "").trim() || pickNestedName(productRecord, ["product_name", "name", "name_ar", "title"]) || String(row.name ?? row.title ?? "").trim() || "قطعة غيار";
 
-      const brandName =
-        pickNestedName(brandRecord, ["brand_name", "name", "name_ar", "title"]) ||
-        String(row.brand_name ?? row.company_name ?? "").trim();
-      const deviceName =
-        pickNestedName(deviceRecord, ["device_model_name", "name", "name_ar", "title", "model_name", "device_name"]) ||
-        String(row.device_model_name ?? row.device_name ?? "").trim();
-      const categoryName =
-        String(row.category_name ?? "").trim() ||
-        pickNestedName(categoryRecord, ["category_name", "name", "name_ar", "title"]) ||
-        String(productRecord?.category_name ?? "").trim();
-      const subtitle =
-        [brandName, deviceName, categoryName].filter(Boolean).join(" · ") || String(row.description ?? productRecord?.description ?? "").trim();
+      const brandName = pickNestedName(brandRecord, ["brand_name", "name", "name_ar", "title"]) || String(row.brand_name ?? row.company_name ?? "").trim();
+      const deviceName = pickNestedName(deviceRecord, ["device_model_name", "name", "name_ar", "title", "model_name", "device_name"]) || String(row.device_model_name ?? row.device_name ?? "").trim();
+      const categoryName = String(row.category_name ?? "").trim() || pickNestedName(categoryRecord, ["category_name", "name", "name_ar", "title"]) || String(productRecord?.category_name ?? "").trim();
+      const subtitle = [brandName, deviceName, categoryName].filter(Boolean).join(" · ") || String(row.description ?? productRecord?.description ?? "").trim();
 
       const price = Number(row.price ?? row.product_price ?? productRecord?.price ?? 0);
-      const status = String(row.status ?? "").trim().toLowerCase();
+      const status = String(row.status ?? "")
+        .trim()
+        .toLowerCase();
       const quantityRaw = Number(row.quantity ?? row.qty ?? 0);
       const quantity = Number.isFinite(quantityRaw) ? quantityRaw : 0;
       const isAvailable = !["out_of_stock", "unavailable", "غير متوفر", "0", "false"].includes(status);
@@ -369,10 +454,7 @@ function normalizePublicShopDetails(payload: unknown, shopId?: string | number):
   if (body && typeof body === "object") {
     if (Array.isArray(body.data)) {
       const list = body.data.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object");
-      const matched =
-        shopId != null && shopId !== ""
-          ? list.find((item) => String(item.id ?? item.shop_id ?? "") === String(shopId))
-          : undefined;
+      const matched = shopId != null && shopId !== "" ? list.find((item) => String(item.id ?? item.shop_id ?? "") === String(shopId)) : undefined;
       raw = matched ?? list[0] ?? null;
     } else if (body.data && typeof body.data === "object") {
       raw = body.data as Record<string, unknown>;
@@ -385,6 +467,8 @@ function normalizePublicShopDetails(payload: unknown, shopId?: string | number):
     return { message, data: null };
   }
 
+  raw = flattenPublicShopDetailsRaw(raw);
+
   const id = String(raw.id ?? raw.shop_id ?? shopId ?? "");
   if (!id) {
     return { message, data: null };
@@ -393,27 +477,28 @@ function normalizePublicShopDetails(payload: unknown, shopId?: string | number):
   const countryValue = raw.country ?? raw.country_name;
   const cityValue = raw.city ?? raw.city_name;
 
+  const { latitude, longitude } = extractShopCoordinates(raw);
+
   const data: PublicShopDetails = {
     id,
     shop_name: String(raw.shop_name ?? raw.name ?? "").trim(),
     description: String(raw.description ?? raw.about ?? "").trim(),
     cover_image: resolveMediaPath(String(raw.cover_image ?? raw.image ?? raw.cover ?? "")),
-    country:
-      typeof countryValue === "object"
-        ? pickNestedName(countryValue, ["name", "name_ar", "country_name"])
-        : String(countryValue ?? "").trim(),
-    city:
-      typeof cityValue === "object"
-        ? pickNestedName(cityValue, ["name", "name_ar", "city_name"])
-        : String(cityValue ?? "").trim(),
-    district: String(raw.district ?? "").trim(),
+    country: typeof countryValue === "object" ? pickNestedName(countryValue, ["name", "name_ar", "country_name"]) : String(countryValue ?? "").trim(),
+    city: typeof cityValue === "object" ? pickNestedName(cityValue, ["name", "name_ar", "city_name"]) : String(cityValue ?? "").trim(),
+    district: String(raw.district ?? raw.district_name ?? "").trim(),
     street: String(raw.street ?? "").trim(),
     status: String(raw.status ?? "").trim(),
-    latitude: String(raw.latitude ?? ""),
-    longitude: String(raw.longitude ?? ""),
+    latitude,
+    longitude,
+    phone: String(raw.phone ?? raw.phone_number ?? raw.mobile ?? "").trim(),
+    whatsapp: String(raw.whatsapp ?? raw.whatsapp_number ?? raw.phone ?? raw.phone_number ?? "").trim(),
+    email: String(raw.email ?? raw.shop_email ?? "").trim(),
+    website: String(raw.website ?? raw.website_url ?? raw.site ?? "").trim(),
     services: normalizePublicShopDetailsServices(raw.services ?? raw.service_list),
     products: normalizePublicShopDetailsProducts(extractPublicShopDetailsProductsSource(raw)),
-    working_hours: normalizeWorkingHours(raw.working_hours),
+    features: normalizePublicShopDetailsFeatures(raw.featuresShop ?? raw.features_shop ?? raw.features),
+    working_hours: normalizeWorkingHours(raw.working_hours ?? raw.workingHours ?? raw.hours ?? raw.schedule),
   };
 
   return { message, data };
@@ -430,6 +515,129 @@ function normalizePublicShops(payload: unknown): GetAllPublicShopsResponse {
     message: Array.isArray(body) ? undefined : body?.message,
     data,
   };
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function pickCount(row: Record<string, unknown>, key: string) {
+  const value = Number(row[key]);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function normalizePlatformReview(value: unknown): PlatformReview | null {
+  const row = asObject(value);
+  if (!row) return null;
+
+  const comment = String(row.comment ?? "").trim();
+  if (!comment) return null;
+
+  const rating = Number(row.rating);
+
+  return {
+    customer_name: String(row.customer_name ?? "").trim() || "عميل",
+    comment,
+    rating: Number.isFinite(rating) ? rating : 0,
+  };
+}
+
+function normalizePlatformStatistics(payload: unknown): PlatformStatistics {
+  const root = asObject(payload);
+  const nested = root ? asObject(root.data) : null;
+  const source =
+    nested && ("customers_count" in nested || "reviews" in nested || "completed_requests_count" in nested) ? nested : (root ?? {});
+
+  const reviewsRaw = Array.isArray(source.reviews) ? source.reviews : [];
+
+  return {
+    customers_count: pickCount(source, "customers_count"),
+    completed_requests_count: pickCount(source, "completed_requests_count"),
+    excellent_reviews_count: pickCount(source, "excellent_reviews_count"),
+    verified_shops_count: pickCount(source, "verified_shops_count"),
+    reviews: reviewsRaw.map(normalizePlatformReview).filter((item): item is PlatformReview => item !== null),
+  };
+}
+
+function parseOptionalCoordinate(value: unknown): number | null {
+  if (value == null || value === "") return null;
+  const parsed = Number(String(value).trim().replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeMapShopProduct(row: Record<string, unknown>): MapShopSearchProduct | null {
+  const direct = asObject(row.product);
+  if (direct) {
+    const name = String(direct.name ?? direct.product_name ?? direct.title ?? "").trim();
+    if (!name) return null;
+    const quantityRaw = Number(direct.quantity);
+    return {
+      name,
+      price: String(direct.price ?? "").trim(),
+      quantity: Number.isFinite(quantityRaw) ? quantityRaw : null,
+      status: String(direct.status ?? "").trim(),
+    };
+  }
+
+  const shopProducts = Array.isArray(row.shopProducts)
+    ? row.shopProducts
+    : Array.isArray(row.shop_products)
+      ? row.shop_products
+      : [];
+  const first = asObject(shopProducts[0]);
+  if (!first) return null;
+
+  const nested = asObject(first.product);
+  const name = String(nested?.name ?? nested?.product_name ?? first.name ?? first.product_name ?? "").trim();
+  if (!name) return null;
+
+  const quantityRaw = Number(first.quantity ?? nested?.quantity);
+  return {
+    name,
+    price: String(first.price ?? nested?.price ?? "").trim(),
+    quantity: Number.isFinite(quantityRaw) ? quantityRaw : null,
+    status: String(first.status ?? nested?.status ?? "").trim(),
+  };
+}
+
+function normalizeMapShopSearchResult(item: unknown): MapShopSearchResult | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? row.shop_id ?? "").trim();
+  if (!id) return null;
+
+  const cityValue = row.city ?? row.city_name;
+  const distanceRaw = row.distance;
+  const distance = distanceRaw == null || distanceRaw === "" ? null : Number(distanceRaw);
+
+  return {
+    id,
+    shop_name: String(row.shop_name ?? row.name ?? "").trim() || "ورشة بدون اسم",
+    cover_image: resolveMediaPath(String(row.cover_image ?? row.image ?? row.cover ?? "")),
+    city: typeof cityValue === "object" ? pickNestedName(cityValue, ["name", "name_ar", "city_name"]) : String(cityValue ?? "").trim(),
+    district: String(row.district ?? "").trim(),
+    street: String(row.street ?? "").trim(),
+    status: String(row.status ?? "").trim(),
+    is_verified: normalizePublicShopVerified(row.is_verified ?? row.verified ?? row.is_shop_verified),
+    latitude: parseOptionalCoordinate(row.latitude ?? row.lat),
+    longitude: parseOptionalCoordinate(row.longitude ?? row.lng ?? row.lon),
+    distance: Number.isFinite(distance) ? distance : null,
+    product: normalizeMapShopProduct(row),
+  };
+}
+
+function normalizeSearchShopMapResponse(payload: unknown): MapShopSearchResult[] {
+  const root = asObject(payload);
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(root?.shops)
+      ? root.shops
+      : Array.isArray(root?.data)
+        ? root.data
+        : [];
+
+  return list.map(normalizeMapShopSearchResult).filter((item): item is MapShopSearchResult => item !== null);
 }
 
 function normalizeFavoriteShopServices(value: unknown): FavoriteShopService[] {
@@ -591,15 +799,85 @@ function normalizeCities(payload: unknown): GetAllCitiesResponse {
   };
 }
 
+function normalizeRole(item: unknown): AppRole | null {
+  if (!item || typeof item !== "object") return null;
+  const row = item as Record<string, unknown>;
+  const id = row.id;
+  const name = String(row.name ?? "").trim();
+  if (id == null || id === "" || !name) return null;
+
+  return {
+    id: id as string | number,
+    name,
+    guard_name: row.guard_name != null ? String(row.guard_name) : undefined,
+    created_at: row.created_at != null ? String(row.created_at) : null,
+    updated_at: row.updated_at != null ? String(row.updated_at) : null,
+  };
+}
+
+function normalizeRoles(payload: unknown): GetAllRolesResponse {
+  const body = payload as { roles?: unknown; data?: unknown; message?: string } | unknown[];
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { roles?: unknown }).roles)
+      ? (body as { roles: unknown[] }).roles
+      : Array.isArray((body as { data?: unknown }).data)
+        ? (body as { data: unknown[] }).data
+        : [];
+
+  return {
+    message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
+    roles: list.map((item) => normalizeRole(item)).filter((item): item is AppRole => item !== null),
+  };
+}
+
+function normalizeRolesForSelect(payload: unknown): GetRolesForSelectResponse {
+  const normalized = normalizeRoles(payload);
+  return {
+    message: normalized.message,
+    roles: normalized.roles.map((role) => ({ id: role.id, name: role.name })),
+  };
+}
+
+function normalizeRolePermissions(payload: unknown): GetRolePermissionsResponse {
+  const body = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const roleRaw = body.role && typeof body.role === "object" ? (body.role as Record<string, unknown>) : {};
+  const list = Array.isArray(body.permissions) ? body.permissions : [];
+
+  const permissions = list
+    .map((item): RolePermission | null => {
+      if (!item || typeof item !== "object") return null;
+      const row = item as Record<string, unknown>;
+      const id = row.id;
+      const name = String(row.name ?? "").trim();
+      if (id == null || id === "" || !name) return null;
+      return {
+        id: id as string | number,
+        name,
+        assigned: Boolean(row.assigned),
+      };
+    })
+    .filter((item): item is RolePermission => item !== null);
+
+  return {
+    message: typeof body.message === "string" ? body.message : undefined,
+    role: {
+      id: (roleRaw.id as string | number) ?? "",
+      name: String(roleRaw.name ?? "").trim(),
+    },
+    permissions,
+  };
+}
+
 function normalizeServices(payload: unknown): GetAllServicesResponse {
   const body = payload as { data?: unknown; services?: unknown; message?: string } | unknown[];
 
   const list = Array.isArray(body) ? body : Array.isArray((body as { data?: unknown }).data) ? (body as { data: unknown[] }).data : Array.isArray((body as { services?: unknown }).services) ? (body as { services: unknown[] }).services : [];
 
-  const data: Service[] = list
-    .map((item) => {
+  const data = list
+    .map((item): Service | null => {
       if (typeof item === "string") {
-        return { id: item, name: item };
+        return { id: item, name: item, created_at: null, updated_at: null };
       }
 
       if (item && typeof item === "object") {
@@ -607,12 +885,17 @@ function normalizeServices(payload: unknown): GetAllServicesResponse {
         const name = String(row.name ?? row.name_ar ?? row.service_name ?? row.title ?? "");
         const id = (row.id ?? row.code ?? name) as number | string;
         if (!name) return null;
-        return { id, name };
+        return {
+          id,
+          name,
+          created_at: row.created_at == null || row.created_at === "" ? null : String(row.created_at),
+          updated_at: row.updated_at == null || row.updated_at === "" ? null : String(row.updated_at),
+        };
       }
 
       return null;
     })
-    .filter((item): item is Service => item !== null);
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   return {
     message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
@@ -949,20 +1232,121 @@ function toIdString(value: unknown): string {
   return String(value);
 }
 
-function normalizeWorkingHours(value: unknown): ShopProfileWorkingHour[] {
-  if (!Array.isArray(value)) return [];
+function parseWorkingHoursSource(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
 
-  return value
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      return parseWorkingHoursSource(JSON.parse(trimmed));
+    } catch {
+      return [];
+    }
+  }
+
+  if (value && typeof value === "object") {
+    const row = value as Record<string, unknown>;
+    if (Array.isArray(row.data)) return row.data;
+    if (Array.isArray(row.hours)) return row.hours;
+    if (Array.isArray(row.working_hours)) return row.working_hours;
+  }
+
+  return [];
+}
+
+function normalizeWorkingHours(value: unknown): ShopProfileWorkingHour[] {
+  const list = parseWorkingHoursSource(value);
+  const dayByIndex = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+
+  return list
     .map((item) => {
       if (!item || typeof item !== "object") return null;
       const row = item as Record<string, unknown>;
-      const day = String(row.day ?? row.day_name ?? row.name ?? "").trim();
-      const from = String(row.from ?? row.start ?? row.start_time ?? "").trim();
-      const to = String(row.to ?? row.end ?? row.end_time ?? "").trim();
+
+      let day = String(row.day ?? row.day_name ?? row.name ?? row.weekday ?? "").trim();
+      if (!day && row.day_of_week != null && row.day_of_week !== "") {
+        const index = Number(row.day_of_week);
+        if (Number.isInteger(index) && index >= 0 && index <= 6) {
+          day = dayByIndex[index];
+        }
+      }
       if (!day) return null;
+
+      const isClosed = row.is_closed === true || row.closed === true || row.is_open === false || String(row.status ?? "").toLowerCase() === "closed";
+
+      const from = isClosed ? "" : String(row.from ?? row.start ?? row.start_time ?? row.open_time ?? row.open ?? "").trim();
+      const to = isClosed ? "" : String(row.to ?? row.end ?? row.end_time ?? row.close_time ?? row.close ?? "").trim();
+
       return { day, from, to };
     })
     .filter((item): item is ShopProfileWorkingHour => item !== null);
+}
+
+function pickCoordinateValue(...values: unknown[]): string {
+  for (const value of values) {
+    if (value == null || value === "") continue;
+    if (typeof value === "object") continue;
+    const normalized = String(value).trim().replace(",", ".");
+    if (!normalized || normalized.toLowerCase() === "null" || normalized.toLowerCase() === "undefined") continue;
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed)) continue;
+    return String(parsed);
+  }
+  return "";
+}
+
+function extractShopCoordinates(raw: Record<string, unknown>) {
+  const location = raw.location && typeof raw.location === "object" && !Array.isArray(raw.location) ? (raw.location as Record<string, unknown>) : null;
+  const geo = raw.geo && typeof raw.geo === "object" && !Array.isArray(raw.geo) ? (raw.geo as Record<string, unknown>) : null;
+  const coordinatesObject = raw.coordinates && typeof raw.coordinates === "object" && !Array.isArray(raw.coordinates) ? (raw.coordinates as Record<string, unknown>) : null;
+  const coordinatesArray = Array.isArray(raw.coordinates) ? raw.coordinates : Array.isArray(raw.latlng) ? raw.latlng : null;
+
+  const latitude = pickCoordinateValue(raw.latitude, raw.lat, raw.shop_latitude, location?.latitude, location?.lat, geo?.latitude, geo?.lat, coordinatesObject?.latitude, coordinatesObject?.lat, coordinatesArray?.[0]);
+
+  const longitude = pickCoordinateValue(
+    raw.longitude,
+    raw.lng,
+    raw.lon,
+    raw.long,
+    raw.shop_longitude,
+    location?.longitude,
+    location?.lng,
+    location?.lon,
+    geo?.longitude,
+    geo?.lng,
+    coordinatesObject?.longitude,
+    coordinatesObject?.lng,
+    coordinatesArray?.[1],
+  );
+
+  return { latitude, longitude };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+/** Merge nested shop/profile payloads so public shop-details can expose lat/lng + hours. */
+function flattenPublicShopDetailsRaw(raw: Record<string, unknown>): Record<string, unknown> {
+  const nestedCandidates = [raw.shop_profile, raw.shop, raw.profile, raw.details, raw.location].map(asRecord).filter(Boolean) as Record<string, unknown>[];
+
+  if (nestedCandidates.length === 0) return raw;
+
+  const merged: Record<string, unknown> = { ...raw };
+  for (const nested of nestedCandidates) {
+    for (const [key, value] of Object.entries(nested)) {
+      const current = merged[key];
+      const currentEmpty = current == null || current === "" || (Array.isArray(current) && current.length === 0) || (typeof current === "object" && !Array.isArray(current) && Object.keys(current as object).length === 0);
+
+      if (currentEmpty && value != null && value !== "") {
+        merged[key] = value;
+      }
+    }
+  }
+
+  return merged;
 }
 
 function normalizeShopProfileServices(value: unknown): ShopProfileService[] {
@@ -1020,6 +1404,7 @@ function normalizeShopProfile(payload: unknown): GetShopProfileResponse {
 
   const coverImage = raw.cover_image ?? raw.cover_image_url ?? raw.cover ?? null;
   const commercialRecordImage = raw.commercial_record_image ?? raw.commercial_record_image_url ?? raw.license_image ?? null;
+  const { latitude, longitude } = extractShopCoordinates(raw);
   const data: ShopProfileData = {
     id: toIdString(raw.id ?? raw.shop_id ?? raw.shop_profile_id),
     shop_name: String(raw.shop_name ?? raw.name ?? ""),
@@ -1030,10 +1415,10 @@ function normalizeShopProfile(payload: unknown): GetShopProfileResponse {
     city_id: toIdString(raw.city_id ?? raw.city),
     district: String(raw.district ?? raw.district_id ?? ""),
     street: String(raw.street ?? ""),
-    latitude: String(raw.latitude ?? ""),
-    longitude: String(raw.longitude ?? ""),
+    latitude,
+    longitude,
     status: normalizeShopProfileStatus(raw.status ?? raw.shop_status ?? raw.is_open),
-    working_hours: normalizeWorkingHours(raw.working_hours),
+    working_hours: normalizeWorkingHours(raw.working_hours ?? raw.workingHours ?? raw.hours ?? raw.schedule),
     services: normalizeShopProfileServices(raw.services ?? raw.service_ids),
   };
 
@@ -1155,19 +1540,471 @@ function normalizeShopOwnerVerificationData(payload: unknown): GetShopOwnerVerif
   };
 }
 
+function normalizeAdminShopOwner(item: unknown, index: number): AdminShopOwner | null {
+  if (!item || typeof item !== "object") return null;
+
+  const raw = item as Record<string, unknown>;
+  const id = (raw.id ?? raw.shop_id ?? raw.user_id ?? raw.owner_id ?? `shop-owner-${index}`) as string | number;
+
+  if (id == null || id === "") return null;
+
+  return { id, raw };
+}
+
+function normalizeAdminShopOwners(payload: unknown): GetAdminShopOwnersResponse {
+  const body = payload as
+    | {
+        data?: unknown;
+        shop_owners?: unknown;
+        shopOwners?: unknown;
+        owners?: unknown;
+        shops?: unknown;
+        message?: string;
+      }
+    | unknown[];
+
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { data?: unknown }).data)
+      ? (body as { data: unknown[] }).data
+      : Array.isArray((body as { shop_owners?: unknown }).shop_owners)
+        ? (body as { shop_owners: unknown[] }).shop_owners
+        : Array.isArray((body as { shopOwners?: unknown }).shopOwners)
+          ? (body as { shopOwners: unknown[] }).shopOwners
+          : Array.isArray((body as { owners?: unknown }).owners)
+            ? (body as { owners: unknown[] }).owners
+            : Array.isArray((body as { shops?: unknown }).shops)
+              ? (body as { shops: unknown[] }).shops
+              : [];
+
+  const data = list.map((item, index) => normalizeAdminShopOwner(item, index)).filter((item): item is AdminShopOwner => item !== null);
+
+  return {
+    message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
+    data,
+  };
+}
+
+function normalizeShopFeature(item: unknown): ShopFeature | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? row.feature_id ?? "").trim();
+  const feature = String(row.feature ?? row.name ?? row.title ?? row.text ?? "").trim();
+  const shop_id = String(row.shop_id ?? row.shopId ?? "").trim();
+
+  if (!id || !feature) return null;
+
+  return { id, feature, shop_id };
+}
+
+function normalizeShopFeatures(payload: unknown): GetAllShopFeaturesResponse {
+  const body = payload as { data?: unknown; features?: unknown; featuresShop?: unknown; message?: string } | unknown[];
+
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { featuresShop?: unknown }).featuresShop)
+      ? (body as { featuresShop: unknown[] }).featuresShop
+      : Array.isArray((body as { data?: unknown }).data)
+        ? (body as { data: unknown[] }).data
+        : Array.isArray((body as { features?: unknown }).features)
+          ? (body as { features: unknown[] }).features
+          : [];
+
+  const data = list.map((item) => normalizeShopFeature(item)).filter((item): item is ShopFeature => item !== null);
+
+  return {
+    message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
+    data,
+  };
+}
+
+function normalizeReviewUser(value: unknown): ReviewUser {
+  if (!value || typeof value !== "object") {
+    return { id: "", name: "مستخدم" };
+  }
+
+  const row = value as Record<string, unknown>;
+  const first = String(row.first_name ?? row.firstName ?? "").trim();
+  const last = String(row.last_name ?? row.lastName ?? "").trim();
+  const fullName = String(row.name ?? row.full_name ?? row.fullName ?? "").trim();
+  const name = fullName || [first, last].filter(Boolean).join(" ") || "مستخدم";
+
+  return {
+    id: String(row.id ?? row.user_id ?? "").trim(),
+    name,
+  };
+}
+
+function normalizeShopReview(item: unknown): ShopReview | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? "").trim();
+  if (!id) return null;
+
+  const ratingRaw = Number(row.rating ?? 0);
+  const rating = Number.isFinite(ratingRaw) ? Math.min(5, Math.max(0, ratingRaw)) : 0;
+
+  return {
+    id,
+    rating,
+    comment: String(row.comment ?? row.text ?? row.message ?? "").trim(),
+    shop_reply: row.shop_reply == null || row.shop_reply === "" ? null : String(row.shop_reply),
+    replied_at: row.replied_at == null || row.replied_at === "" ? null : String(row.replied_at),
+    created_at: String(row.created_at ?? row.createdAt ?? row.date ?? "").trim(),
+    user: normalizeReviewUser(row.user ?? row.customer ?? row.author),
+  };
+}
+
+function normalizeRepairRequestNamedRef(value: unknown): RepairRequestNamedRef | null {
+  if (!value || typeof value !== "object") return null;
+
+  const row = value as Record<string, unknown>;
+  const name = String(row.name ?? row.device_model_name ?? row.service_name ?? row.title ?? "").trim();
+  const id = String(row.id ?? "").trim();
+  if (!name && !id) return null;
+
+  return { id, name };
+}
+
+function normalizeRepairRequestCustomer(value: unknown): RepairRequestCustomer | null {
+  if (!value || typeof value !== "object") return null;
+
+  const row = value as Record<string, unknown>;
+  const firstName = String(row.first_name ?? "").trim();
+  const lastName = String(row.last_name ?? "").trim();
+  const email = String(row.email ?? "").trim();
+  const id = String(row.id ?? "").trim();
+  if (!firstName && !lastName && !email && !id) return null;
+
+  return { id, first_name: firstName, last_name: lastName, email };
+}
+
+function normalizeRepairRequest(item: unknown): RepairRequest | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? "").trim();
+  if (!id) return null;
+
+  const shop = row.shop && typeof row.shop === "object" ? (row.shop as Record<string, unknown>) : null;
+
+  return {
+    id,
+    customer: normalizeRepairRequestCustomer(row.customer ?? row.user),
+    shop_name: String(shop?.shop_name ?? "").trim(),
+    device_model: normalizeRepairRequestNamedRef(row.device_model ?? row.deviceModel),
+    service: normalizeRepairRequestNamedRef(row.service),
+    description: String(row.description ?? "").trim(),
+    image: resolveShopOwnerMediaPath(String(row.image ?? "")) ?? "",
+    status: String(row.status ?? "").trim(),
+    phone_number: String(row.phone_number ?? "").trim(),
+    address: String(row.address ?? "").trim(),
+    created_at: String(row.created_at ?? "").trim(),
+    updated_at: String(row.updated_at ?? "").trim(),
+  };
+}
+
+function normalizeRepairRequests(payload: unknown): GetAllRepairRequestsResponse {
+  const body = payload as { data?: unknown; repair_requests?: unknown; message?: string } | unknown[];
+
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { data?: unknown }).data)
+      ? (body as { data: unknown[] }).data
+      : Array.isArray((body as { repair_requests?: unknown }).repair_requests)
+        ? (body as { repair_requests: unknown[] }).repair_requests
+        : [];
+
+  return {
+    message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
+    data: list.map((item) => normalizeRepairRequest(item)).filter((item): item is RepairRequest => item !== null),
+  };
+}
+
+function normalizeContactMessage(item: unknown): ContactMessage | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? "").trim();
+  if (!id) return null;
+
+  const reply = String(row.reply ?? row.admin_reply ?? row.adminReply ?? "").trim();
+  const repliedAt = String(row.replied_at ?? row.repliedAt ?? "").trim();
+
+  return {
+    id,
+    fullName: String(row.full_name ?? row.fullName ?? "").trim(),
+    email: String(row.email ?? "").trim(),
+    subject: String(row.subject ?? "").trim(),
+    message: String(row.message ?? "").trim(),
+    status: String(row.status ?? "").trim().toLowerCase() || "pending",
+    adminReply: reply || null,
+    repliedAt: repliedAt || null,
+    date: String(row.created_at ?? row.createdAt ?? row.date ?? "").trim(),
+  };
+}
+
+function normalizeContactMessages(payload: unknown): GetAllContactMessagesResponse {
+  const body = payload as { data?: unknown; contact_messages?: unknown; message?: string } | unknown[];
+
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { data?: unknown }).data)
+      ? (body as { data: unknown[] }).data
+      : Array.isArray((body as { contact_messages?: unknown }).contact_messages)
+        ? (body as { contact_messages: unknown[] }).contact_messages
+        : [];
+
+  return {
+    message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
+    data: list.map((item) => normalizeContactMessage(item)).filter((item): item is ContactMessage => item !== null),
+  };
+}
+
+function extractComplaintList(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  const body = payload as Record<string, unknown>;
+  if (Array.isArray(body.data)) return body.data;
+  if (body.data && typeof body.data === "object") {
+    const nested = body.data as Record<string, unknown>;
+    if (Array.isArray(nested.data)) return nested.data;
+  }
+  if (Array.isArray(body.complaints)) return body.complaints;
+  return [];
+}
+
+function normalizeComplaint(item: unknown): Complaint | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? "").trim();
+  if (!id) return null;
+
+  const customerRaw = row.customer && typeof row.customer === "object" ? (row.customer as Record<string, unknown>) : null;
+  const shopRaw = row.shop && typeof row.shop === "object" ? (row.shop as Record<string, unknown>) : null;
+  const reply = String(row.admin_reply ?? row.adminReply ?? "").trim();
+  const repliedAt = String(row.replied_at ?? row.repliedAt ?? "").trim();
+  const status = String(row.status ?? "").trim().toLowerCase() || "pending";
+
+  return {
+    id,
+    customer: customerRaw
+      ? {
+          id: String(customerRaw.id ?? "").trim(),
+          name: String(customerRaw.name ?? `${customerRaw.first_name ?? ""} ${customerRaw.last_name ?? ""}`).trim(),
+          email: String(customerRaw.email ?? "").trim(),
+        }
+      : null,
+    shop: shopRaw
+      ? {
+          id: String(shopRaw.id ?? "").trim(),
+          name: String(shopRaw.name ?? shopRaw.shop_name ?? "").trim(),
+        }
+      : null,
+    subject: String(row.subject ?? "").trim(),
+    message: String(row.message ?? "").trim(),
+    status,
+    status_name: String(row.status_name ?? (status === "replied" ? "تم الرد" : "قيد الانتظار")).trim(),
+    admin_reply: reply || null,
+    replied_at: repliedAt || null,
+    created_at: String(row.created_at ?? row.createdAt ?? "").trim(),
+  };
+}
+
+function normalizeComplaints(payload: unknown): GetAllComplaintsResponse {
+  const body = payload && typeof payload === "object" ? (payload as { message?: string }) : null;
+  return {
+    message: body?.message,
+    data: extractComplaintList(payload)
+      .map((item) => normalizeComplaint(item))
+      .filter((item): item is Complaint => item !== null),
+  };
+}
+
+function parseNotificationData(value: unknown): Record<string, unknown> {
+  if (!value) return {};
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    } catch {
+      return { message: value };
+    }
+  }
+  if (typeof value === "object") return value as Record<string, unknown>;
+  return {};
+}
+
+function notificationTitleFromStatus(status: string) {
+  const key = status.trim().toLowerCase();
+  if (key === "accepted" || key === "approved") return "تم قبول طلب الإصلاح";
+  if (key === "rejected") return "تم رفض طلب الإصلاح";
+  if (key === "completed") return "تم إكمال طلب الإصلاح";
+  if (key === "canceled" || key === "cancelled") return "تم إلغاء طلب الإصلاح";
+  if (key === "pending") return "طلب الإصلاح قيد المراجعة";
+  return "";
+}
+
+function normalizeCustomerNotification(item: unknown): CustomerNotification | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = String(row.id ?? "").trim();
+  if (!id) return null;
+
+  const data = parseNotificationData(row.data);
+  const nestedRequest = data.repair_request && typeof data.repair_request === "object" ? (data.repair_request as Record<string, unknown>) : null;
+  const nestedShop = data.shop && typeof data.shop === "object" ? (data.shop as Record<string, unknown>) : null;
+  const nestedService = data.service && typeof data.service === "object" ? (data.service as Record<string, unknown>) : null;
+  const nestedDevice = data.device_model && typeof data.device_model === "object" ? (data.device_model as Record<string, unknown>) : null;
+  const status = String(data.status ?? nestedRequest?.status ?? "").trim();
+  const shopName = String(data.shop_name ?? nestedShop?.shop_name ?? data.shopName ?? "").trim();
+  const serviceName = String(nestedService?.service_name ?? nestedService?.name ?? data.service_name ?? "").trim();
+  const deviceModelName = String(nestedDevice?.device_model_name ?? nestedDevice?.name ?? data.device_model_name ?? "").trim();
+  const title = String(data.title ?? data.subject ?? notificationTitleFromStatus(status) ?? "").trim() || "إشعار جديد";
+  const message = String(data.message ?? data.body ?? data.content ?? data.text ?? "").trim();
+
+  return {
+    id,
+    title,
+    message,
+    status,
+    shop_name: shopName,
+    service_name: serviceName,
+    device_model_name: deviceModelName,
+    repair_request_id: String(data.repair_request_id ?? data.repairRequestId ?? nestedRequest?.id ?? data.request_id ?? "").trim(),
+    read_at: row.read_at == null || row.read_at === "" ? null : String(row.read_at),
+    created_at: String(row.created_at ?? row.createdAt ?? "").trim(),
+  };
+}
+
+function normalizeCustomerNotifications(payload: unknown): GetCustomerNotificationsResponse {
+  const body = payload as { data?: unknown; notifications?: unknown; message?: string } | unknown[];
+
+  const list = Array.isArray(body)
+    ? body
+    : Array.isArray((body as { data?: unknown }).data)
+      ? (body as { data: unknown[] }).data
+      : Array.isArray((body as { notifications?: unknown }).notifications)
+        ? (body as { notifications: unknown[] }).notifications
+        : [];
+
+  return {
+    message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
+    data: list.map((item) => normalizeCustomerNotification(item)).filter((item): item is CustomerNotification => item !== null),
+  };
+}
+
+function normalizeRatingDistribution(value: unknown): ShopReviewsRatingDistribution {
+  const row = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  const read = (key: string) => {
+    const n = Number(row[key] ?? 0);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  return {
+    "5": read("5"),
+    "4": read("4"),
+    "3": read("3"),
+    "2": read("2"),
+    "1": read("1"),
+  };
+}
+
+function normalizeShopReviewsResponse(payload: unknown): GetShopReviewsResponse {
+  const body = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+  const list = Array.isArray(body.reviews) ? body.reviews : Array.isArray(body.data) ? body.data : [];
+  const reviews = list.map((item) => normalizeShopReview(item)).filter((item): item is ShopReview => item !== null);
+  const average = Number(body.average_rating ?? body.averageRating ?? 0);
+  const count = Number(body.reviews_count ?? body.reviewsCount ?? reviews.length);
+
+  return {
+    average_rating: Number.isFinite(average) ? average : 0,
+    reviews_count: Number.isFinite(count) ? count : reviews.length,
+    rating_distribution: normalizeRatingDistribution(body.rating_distribution ?? body.ratingDistribution),
+    reviews,
+  };
+}
+
+function normalizeShopOwnerReviewsResponse(payload: unknown): GetShopOwnerReviewsResponse {
+  const body = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+  const list = Array.isArray(body.reviews) ? body.reviews : Array.isArray(body.data) ? body.data : [];
+  const reviews = list.map((item) => normalizeShopReview(item)).filter((item): item is ShopReview => item !== null);
+  const average = Number(body.average_rating ?? body.averageRating ?? 0);
+  const count = Number(body.reviews_count ?? body.reviewsCount ?? reviews.length);
+
+  return {
+    average_rating: Number.isFinite(average) ? average : 0,
+    reviews_count: Number.isFinite(count) ? count : reviews.length,
+    reviews,
+  };
+}
+
+function normalizeStoreReviewResponse(payload: unknown): StoreReviewResponse {
+  const body = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+  const review = normalizeShopReview(body.review ?? body.data);
+  return {
+    message: body.message == null ? undefined : String(body.message),
+    review: review ?? {
+      id: "",
+      rating: 0,
+      comment: "",
+      shop_reply: null,
+      replied_at: null,
+      created_at: "",
+      user: { id: "", name: "مستخدم" },
+    },
+  };
+}
+
+function normalizeReplyShopReviewResponse(payload: unknown): ReplyShopReviewResponse {
+  const body = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
+  const review = normalizeShopReview(body.review ?? body.data);
+  return {
+    message: body.message == null ? undefined : String(body.message),
+    review: review ?? {
+      id: "",
+      rating: 0,
+      comment: "",
+      shop_reply: null,
+      replied_at: null,
+      created_at: "",
+      user: { id: "", name: "مستخدم" },
+    },
+  };
+}
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: import.meta.env.VITE_API_BASE_URL,
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as { auth: { token: string | null } }).auth.token;
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+    return headers;
+  },
+});
+
 export const baseApi = createApi({
   reducerPath: "api",
-  tagTypes: ["ShopProfile", "ShopProducts", "Favorites", "Countries", "Cities", "Brands", "DeviceModels", "Categories", "Products", "ShopOwnerVerifications"],
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_BASE_URL,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as { auth: { token: string | null } }).auth.token;
+  tagTypes: ["ShopProfile", "ShopProducts", "Favorites", "Countries", "Cities", "Brands", "DeviceModels", "Categories", "Products", "Services", "ShopOwnerVerifications", "AdminShopOwners", "ShopFeatures", "ShopReviews", "ShopOwnerReviews", "RepairRequests", "Notifications", "ContactMessages", "Roles", "RolePermissions", "Complaints"],
+  baseQuery: (async (args, api, extraOptions) => {
+    const result = await rawBaseQuery(args, api, extraOptions);
+
+    if (result.error?.status === 401) {
+      const token = (api.getState() as { auth: { token: string | null } }).auth.token;
       if (token) {
-        headers.set("Authorization", `Bearer ${token}`);
+        api.dispatch(logout());
+        api.dispatch(baseApi.util.resetApiState());
       }
-      return headers;
-    },
-  }),
+    }
+
+    return result;
+  }) satisfies BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>,
   endpoints: (build) => ({
     registerClient: build.mutation<ClientRegisterResponse, ClientRegisterRequest>({
       query: (body) => ({
@@ -1289,6 +2126,42 @@ export const baseApi = createApi({
         method: "GET",
       }),
       transformResponse: (response: unknown) => normalizeServices(response),
+      providesTags: ["Services"],
+    }),
+
+    getServicesAll: build.query<GetAllServicesResponse, void>({
+      query: () => ({
+        url: "/services/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeServices(response),
+      providesTags: ["Services"],
+    }),
+
+    storeService: build.mutation<{ message?: string }, { service_name: string }>({
+      query: (body) => ({
+        url: "/services/store",
+        method: "POST",
+        body: { service_name: body.service_name },
+      }),
+      invalidatesTags: ["Services"],
+    }),
+
+    updateService: build.mutation<{ message?: string }, { id: string | number; service_name: string }>({
+      query: ({ id, service_name }) => ({
+        url: `/services/update/${id}`,
+        method: "PUT",
+        body: { service_name },
+      }),
+      invalidatesTags: ["Services"],
+    }),
+
+    deleteService: build.mutation<{ message?: string }, string | number>({
+      query: (id) => ({
+        url: `/services/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Services"],
     }),
 
     getCategoriesForSelect: build.query<GetCategoriesForSelectResponse, void>({
@@ -1559,6 +2432,47 @@ export const baseApi = createApi({
       invalidatesTags: ["ShopOwnerVerifications"],
     }),
 
+    getAdminShopOwnersAll: build.query<GetAdminShopOwnersResponse, void>({
+      query: () => ({
+        url: "/admin/shop-owners/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeAdminShopOwners(response),
+      providesTags: ["AdminShopOwners"],
+    }),
+
+    freezeAdminShopOwner: build.mutation<{ message?: string }, string | number>({
+      query: (id) => ({
+        url: `/admin/shop-owners/freeze/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["AdminShopOwners"],
+    }),
+
+    unfreezeAdminShopOwner: build.mutation<{ message?: string }, string | number>({
+      query: (id) => ({
+        url: `/admin/shop-owners/unfreeze/${id}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["AdminShopOwners"],
+    }),
+
+    deleteAdminShopOwner: build.mutation<{ message?: string }, string | number>({
+      query: (id) => ({
+        url: `/admin/shop-owners/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["AdminShopOwners"],
+    }),
+
+    verifyAdminShopOwner: build.mutation<{ message?: string }, string | number>({
+      query: (shopId) => ({
+        url: `/shop-owner/${shopId}/verify`,
+        method: "POST",
+      }),
+      invalidatesTags: ["AdminShopOwners"],
+    }),
+
     saveOrUpdateShopProfile: build.mutation<ShopProfileSaveOrUpdateResponse, FormData>({
       query: (body) => ({
         url: "/shop-owner/shop-profile/save-or-update",
@@ -1654,12 +2568,222 @@ export const baseApi = createApi({
       providesTags: ["ShopProducts"],
     }),
 
-    getAllPublicShops: build.query<GetAllPublicShopsResponse, void>({
+    getAllPublicShops: build.query<GetAllPublicShopsResponse, GetAllPublicShopsParams | void>({
+      query: (params) => {
+        const filters = params && typeof params === "object" ? params : {};
+        const searchParams = new URLSearchParams();
+
+        const setIfPresent = (key: string, value: string | number | null | undefined) => {
+          if (value == null || value === "") return;
+          searchParams.set(key, String(value));
+        };
+
+        setIfPresent("name", filters.name);
+        setIfPresent("cityName", filters.city_name);
+        setIfPresent("status", filters.status);
+        setIfPresent("service_id", filters.service_id);
+        setIfPresent("price", filters.price);
+        setIfPresent("sparePart", filters.product_name);
+        setIfPresent("rating", filters.rating);
+        setIfPresent("is_verified", filters.is_verified);
+
+        const query = searchParams.toString();
+        return {
+          url: query ? `/home/get-all-shop?${query}` : "/home/get-all-shop",
+          method: "GET",
+        };
+      },
+      transformResponse: (response: unknown) => normalizePublicShops(response),
+    }),
+
+    getPlatformStatistics: build.query<PlatformStatistics, void>({
       query: () => ({
-        url: "/home/get-all-shop",
+        url: "/platform/statistics",
         method: "GET",
       }),
-      transformResponse: (response: unknown) => normalizePublicShops(response),
+      transformResponse: (response: unknown) => normalizePlatformStatistics(response),
+    }),
+
+    searchShopsMap: build.query<MapShopSearchResult[], SearchShopMapParams>({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+
+        const setIfPresent = (key: string, value: string | number | null | undefined) => {
+          if (value == null || value === "") return;
+          searchParams.set(key, String(value));
+        };
+
+        setIfPresent("latitude", params.latitude);
+        setIfPresent("longitude", params.longitude);
+        setIfPresent("service_id", params.service_id);
+        setIfPresent("product_id", params.product_id);
+
+        const query = searchParams.toString();
+        return {
+          url: query ? `/shops/search?${query}` : "/shops/search",
+          method: "GET",
+        };
+      },
+      transformResponse: (response: unknown) => normalizeSearchShopMapResponse(response),
+    }),
+
+    storeRepairRequest: build.mutation<StoreRepairRequestResponse, FormData>({
+      query: (body) => ({
+        url: "/repair-requests/store",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["RepairRequests", "Notifications"],
+    }),
+
+    getAllRepairRequests: build.query<GetAllRepairRequestsResponse, void>({
+      query: () => ({
+        url: "/repair-requests/get-all-data",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeRepairRequests(response),
+      providesTags: ["RepairRequests"],
+    }),
+
+    approveRepairRequest: build.mutation<RepairRequestMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/repair-requests/approve/${id}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["RepairRequests"],
+    }),
+
+    rejectRepairRequest: build.mutation<RepairRequestMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/repair-requests/reject/${id}`,
+        method: "POST",
+      }),
+      invalidatesTags: ["RepairRequests"],
+    }),
+
+    completeRepairRequest: build.mutation<RepairRequestMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/repair-requests/customer-repair-requests/${id}/complete`,
+        method: "POST",
+      }),
+      invalidatesTags: ["RepairRequests", "Notifications"],
+    }),
+
+    deleteRepairRequest: build.mutation<RepairRequestMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/repair-requests/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["RepairRequests"],
+    }),
+
+    storeContactMessage: build.mutation<StoreContactMessageResponse, StoreContactMessageRequest>({
+      query: (body) => ({
+        url: "/contact/store",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ContactMessages"],
+    }),
+
+    getAllContactMessages: build.query<GetAllContactMessagesResponse, void>({
+      query: () => ({
+        url: "/contact/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeContactMessages(response),
+      providesTags: ["ContactMessages"],
+    }),
+
+    replyContactMessage: build.mutation<ContactMessageMutationResponse, ReplyContactMessageRequest>({
+      query: ({ id, reply }) => ({
+        url: `/contact/reply/${id}`,
+        method: "POST",
+        body: { reply },
+      }),
+      invalidatesTags: ["ContactMessages"],
+      async onQueryStarted({ id, reply }, { dispatch, queryFulfilled }) {
+        try {
+          await queryFulfilled;
+          const repliedAt = new Date().toISOString();
+          dispatch(
+            baseApi.util.updateQueryData("getAllContactMessages", undefined, (draft) => {
+              const item = draft.data.find((message) => message.id === String(id));
+              if (!item) return;
+              item.status = "replied";
+              item.adminReply = reply;
+              item.repliedAt = repliedAt;
+            }),
+          );
+        } catch {
+          // keep current list if the reply request fails
+        }
+      },
+    }),
+
+    deleteContactMessage: build.mutation<ContactMessageMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/contact/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ContactMessages"],
+    }),
+
+    getCustomerNotifications: build.query<GetCustomerNotificationsResponse, void>({
+      query: () => ({
+        url: "/repair-requests/notifications",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeCustomerNotifications(response),
+      providesTags: ["Notifications"],
+    }),
+
+    markCustomerNotificationRead: build.mutation<RepairRequestMutationResponse, string>({
+      query: (id) => ({
+        url: `/repair-requests/notifications/${id}/read`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Notifications"],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          baseApi.util.updateQueryData("getCustomerNotifications", undefined, (draft) => {
+            const notification = draft.data.find((item) => item.id === id);
+            if (notification && !notification.read_at) {
+              notification.read_at = new Date().toISOString();
+            }
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
+    }),
+
+    markAllCustomerNotificationsRead: build.mutation<RepairRequestMutationResponse, void>({
+      query: () => ({
+        url: "/repair-requests/notifications/read-all",
+        method: "POST",
+      }),
+      invalidatesTags: ["Notifications"],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        const readAt = new Date().toISOString();
+        const patchResult = dispatch(
+          baseApi.util.updateQueryData("getCustomerNotifications", undefined, (draft) => {
+            draft.data.forEach((notification) => {
+              if (!notification.read_at) notification.read_at = readAt;
+            });
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
 
     getPublicShopDetails: build.query<GetPublicShopDetailsResponse, string | number>({
@@ -1696,6 +2820,223 @@ export const baseApi = createApi({
       transformResponse: (response: unknown) => normalizeMyFavorites(response),
       providesTags: ["Favorites"],
     }),
+
+    getAllShopFeatures: build.query<GetAllShopFeaturesResponse, void>({
+      query: () => ({
+        url: "/features-shop/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeShopFeatures(response),
+      providesTags: ["ShopFeatures"],
+    }),
+
+    storeShopFeature: build.mutation<ShopFeatureMutationResponse, StoreShopFeatureRequest>({
+      query: (body) => ({
+        url: "/features-shop/store",
+        method: "POST",
+        body: {
+          feature: body.feature,
+          shop_id: body.shop_id,
+        },
+      }),
+      invalidatesTags: ["ShopFeatures"],
+    }),
+
+    updateShopFeature: build.mutation<ShopFeatureMutationResponse, UpdateShopFeatureRequest>({
+      query: ({ id, feature, shop_id }) => ({
+        url: `/features-shop/update/${id}`,
+        method: "PUT",
+        body: {
+          feature,
+          shop_id,
+        },
+      }),
+      invalidatesTags: ["ShopFeatures"],
+    }),
+
+    deleteShopFeature: build.mutation<ShopFeatureMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/features-shop/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ShopFeatures"],
+    }),
+
+    getShopReviews: build.query<GetShopReviewsResponse, string | number>({
+      query: (shopId) => ({
+        url: `/shops/${shopId}/reviews`,
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeShopReviewsResponse(response),
+      providesTags: (_result, _error, shopId) => [{ type: "ShopReviews", id: String(shopId) }],
+    }),
+
+    storeReview: build.mutation<StoreReviewResponse, StoreReviewRequest>({
+      query: ({ shopId, rating, comment }) => ({
+        url: `/reviews/${shopId}/reviews/store`,
+        method: "POST",
+        body: { rating, comment },
+      }),
+      transformResponse: (response: unknown) => normalizeStoreReviewResponse(response),
+      invalidatesTags: (_result, _error, arg) => [{ type: "ShopReviews", id: String(arg.shopId) }, "ShopOwnerReviews"],
+    }),
+
+    updateReview: build.mutation<ReviewMutationResponse, UpdateReviewRequest & { shopId: string | number }>({
+      query: ({ id, rating, comment }) => ({
+        url: `/reviews/update/${id}`,
+        method: "PUT",
+        body: { rating, comment },
+      }),
+      invalidatesTags: (_result, _error, arg) => [{ type: "ShopReviews", id: String(arg.shopId) }, "ShopOwnerReviews"],
+    }),
+
+    deleteReview: build.mutation<ReviewMutationResponse, { id: string | number; shopId: string | number }>({
+      query: ({ id }) => ({
+        url: `/reviews/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, arg) => [{ type: "ShopReviews", id: String(arg.shopId) }, "ShopOwnerReviews"],
+    }),
+
+    getShopOwnerReviews: build.query<GetShopOwnerReviewsResponse, void>({
+      query: () => ({
+        url: "/shop-owner/reviews/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeShopOwnerReviewsResponse(response),
+      providesTags: ["ShopOwnerReviews"],
+    }),
+
+    replyShopOwnerReview: build.mutation<ReplyShopReviewResponse, ReplyShopReviewRequest>({
+      query: ({ id, reply }) => ({
+        url: `/shop-owner/reviews/reply/${id}`,
+        method: "PATCH",
+        body: { reply },
+      }),
+      transformResponse: (response: unknown) => normalizeReplyShopReviewResponse(response),
+      invalidatesTags: ["ShopOwnerReviews", "ShopReviews"],
+    }),
+
+    deleteAdminReview: build.mutation<ReviewMutationResponse, { id: string | number; shopId?: string | number }>({
+      query: ({ id }) => ({
+        url: `/admin/reviews/delete/${id}`,
+        method: "PUT",
+      }),
+      invalidatesTags: (_result, _error, arg) => ["ShopOwnerReviews", ...(arg.shopId != null ? [{ type: "ShopReviews" as const, id: String(arg.shopId) }] : ["ShopReviews" as const])],
+    }),
+
+    getAllRoles: build.query<GetAllRolesResponse, void>({
+      query: () => ({
+        url: "/roles",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeRoles(response),
+      providesTags: ["Roles"],
+    }),
+
+    getRolesForSelect: build.query<GetRolesForSelectResponse, void>({
+      query: () => ({
+        url: "/roles/select",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeRolesForSelect(response),
+      providesTags: ["Roles"],
+    }),
+
+    storeRole: build.mutation<RoleMutationResponse, { name: string }>({
+      query: (body) => ({
+        url: "/roles",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Roles"],
+    }),
+
+    updateRole: build.mutation<RoleMutationResponse, { id: string | number; name: string }>({
+      query: ({ id, name }) => ({
+        url: `/roles/${id}`,
+        method: "PUT",
+        body: { name },
+      }),
+      invalidatesTags: ["Roles", "RolePermissions"],
+    }),
+
+    deleteRole: build.mutation<RoleMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/roles/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Roles", "RolePermissions"],
+    }),
+
+    getRolePermissions: build.query<GetRolePermissionsResponse, string | number>({
+      query: (roleId) => ({
+        url: `/roles/${roleId}/permissions`,
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeRolePermissions(response),
+      providesTags: (_result, _error, roleId) => [{ type: "RolePermissions", id: String(roleId) }],
+    }),
+
+    giveRolePermission: build.mutation<RoleMutationResponse, { roleId: string | number; permissionId: string | number }>({
+      query: ({ roleId, permissionId }) => ({
+        url: `/roles/${roleId}/permissions/${permissionId}`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, arg) => [{ type: "RolePermissions", id: String(arg.roleId) }],
+    }),
+
+    revokeRolePermission: build.mutation<RoleMutationResponse, { roleId: string | number; permissionId: string | number }>({
+      query: ({ roleId, permissionId }) => ({
+        url: `/roles/${roleId}/permissions/${permissionId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (_result, _error, arg) => [{ type: "RolePermissions", id: String(arg.roleId) }],
+    }),
+
+    storeComplaint: build.mutation<StoreComplaintResponse, StoreComplaintRequest>({
+      query: (body) => ({
+        url: "/complaints/store",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Complaints"],
+    }),
+
+    getMyComplaints: build.query<GetAllComplaintsResponse, void>({
+      query: () => ({
+        url: "/complaints/my-complaints",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeComplaints(response),
+      providesTags: ["Complaints"],
+    }),
+
+    getAllComplaints: build.query<GetAllComplaintsResponse, void>({
+      query: () => ({
+        url: "/complaints/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeComplaints(response),
+      providesTags: ["Complaints"],
+    }),
+
+    replyComplaint: build.mutation<ComplaintMutationResponse, ReplyComplaintRequest>({
+      query: ({ id, admin_reply }) => ({
+        url: `/complaints/reply/${id}`,
+        method: "POST",
+        body: { admin_reply },
+      }),
+      invalidatesTags: ["Complaints"],
+    }),
+
+    deleteComplaint: build.mutation<ComplaintMutationResponse, string | number>({
+      query: (id) => ({
+        url: `/complaints/delete/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Complaints"],
+    }),
   }),
 });
 
@@ -1719,6 +3060,10 @@ export const {
   useUpdateCityMutation,
   useDeleteCityMutation,
   useGetAllServicesQuery,
+  useGetServicesAllQuery,
+  useStoreServiceMutation,
+  useUpdateServiceMutation,
+  useDeleteServiceMutation,
   useGetCategoriesForSelectQuery,
   useGetCategoriesAllQuery,
   useStoreCategoryMutation,
@@ -1744,6 +3089,11 @@ export const {
   useApproveShopOwnerVerificationMutation,
   useRejectShopOwnerVerificationMutation,
   useDeleteShopOwnerVerificationMutation,
+  useGetAdminShopOwnersAllQuery,
+  useFreezeAdminShopOwnerMutation,
+  useUnfreezeAdminShopOwnerMutation,
+  useDeleteAdminShopOwnerMutation,
+  useVerifyAdminShopOwnerMutation,
   useSaveOrUpdateShopProfileMutation,
   useGetShopProfileQuery,
   useUpdateShopStatusMutation,
@@ -1752,8 +3102,47 @@ export const {
   useDeleteShopProductMutation,
   useGetAllShopProductsQuery,
   useGetAllPublicShopsQuery,
+  useGetPlatformStatisticsQuery,
+  useLazySearchShopsMapQuery,
   useGetPublicShopDetailsQuery,
+  useStoreRepairRequestMutation,
+  useGetAllRepairRequestsQuery,
+  useApproveRepairRequestMutation,
+  useRejectRepairRequestMutation,
+  useCompleteRepairRequestMutation,
+  useDeleteRepairRequestMutation,
+  useStoreContactMessageMutation,
+  useGetAllContactMessagesQuery,
+  useReplyContactMessageMutation,
+  useDeleteContactMessageMutation,
+  useGetCustomerNotificationsQuery,
+  useMarkCustomerNotificationReadMutation,
+  useMarkAllCustomerNotificationsReadMutation,
   useAddFavoriteShopMutation,
   useRemoveFavoriteShopMutation,
   useGetMyFavoritesQuery,
+  useGetAllShopFeaturesQuery,
+  useStoreShopFeatureMutation,
+  useUpdateShopFeatureMutation,
+  useDeleteShopFeatureMutation,
+  useGetShopReviewsQuery,
+  useStoreReviewMutation,
+  useUpdateReviewMutation,
+  useDeleteReviewMutation,
+  useGetShopOwnerReviewsQuery,
+  useReplyShopOwnerReviewMutation,
+  useDeleteAdminReviewMutation,
+  useGetAllRolesQuery,
+  useGetRolesForSelectQuery,
+  useStoreRoleMutation,
+  useUpdateRoleMutation,
+  useDeleteRoleMutation,
+  useGetRolePermissionsQuery,
+  useGiveRolePermissionMutation,
+  useRevokeRolePermissionMutation,
+  useStoreComplaintMutation,
+  useGetMyComplaintsQuery,
+  useGetAllComplaintsQuery,
+  useReplyComplaintMutation,
+  useDeleteComplaintMutation,
 } = baseApi;

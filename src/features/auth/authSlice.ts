@@ -1,8 +1,11 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { AppUserRole } from "./authRoles";
 
-interface AuthUser {
+export interface AuthUser {
+  id?: string | number;
   first_name: string;
   last_name: string;
+  role?: AppUserRole;
 }
 
 interface AuthState {

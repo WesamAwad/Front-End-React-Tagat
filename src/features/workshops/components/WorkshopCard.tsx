@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Heart, MapPin, Wrench } from "lucide-react";
+import { BadgeCheck, Heart, MapPin, Wrench } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAddFavoriteShopMutation, useRemoveFavoriteShopMutation } from "../../auth/authApi";
 import { useAppSelector } from "../../../store/hooks";
@@ -89,9 +89,22 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
       <div className="flex flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-lg font-medium text-gray-900">{shop.shop_name}</h3>
-            <div className="mt-1.5" aria-hidden="true">
-              <StarRating rating={5} starClassName="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5">
+              <h3 className="truncate text-lg font-medium text-gray-900">{shop.shop_name}</h3>
+              {shop.is_verified ? (
+                <span
+                  className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                  title="ورشة موثّقة"
+                  aria-label="ورشة موثّقة"
+                >
+                  <BadgeCheck className="size-3.5" aria-hidden="true" />
+                  موثق
+                </span>
+              ) : null}
+            </div>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <StarRating rating={shop.average_rating} starClassName="h-3.5 w-3.5" />
+              <span className="text-xs text-gray-500">({shop.average_rating.toFixed(1)})</span>
             </div>
           </div>
           {shop.status ? (
@@ -120,7 +133,7 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
 
         <div className="flex gap-2">
           <Link
-            to="/workshops/booking"
+            to={`/workshops/booking?shop_id=${encodeURIComponent(shop.id)}&shop_name=${encodeURIComponent(shop.shop_name)}`}
             className="flex flex-1 items-center justify-center rounded-md bg-primary py-2 text-sm font-bold text-white transition hover:bg-primary-hover"
           >
             احجز موعد
