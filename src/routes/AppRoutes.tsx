@@ -9,6 +9,7 @@ import AiDiagnosisPage from "../features/ai-diagnosis/AiDiagnosisPage";
 import AboutPage from "../features/about/AboutPage";
 import ContactPage from "../features/contact/ContactPage";
 import FavoritesPage from "../features/favorites/FavoritesPage";
+import CustomerProfilePage from "../features/profile/CustomerProfilePage";
 import LoginPage from "../features/login/LoginPage";
 import ForgotPasswordPage from "../features/login/ForgotPasswordPage";
 import ResetPasswordPage from "../features/login/ResetPasswordPage";
@@ -81,6 +82,15 @@ export const router = createBrowserRouter([
       {
         path: "favorites",
         element: <FavoritesPage />,
+      },
+      {
+        element: <RoleRoute allow="customer" />,
+        children: [
+          {
+            path: "profile",
+            element: <CustomerProfilePage />,
+          },
+        ],
       },
     ],
   },

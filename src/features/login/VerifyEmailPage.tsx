@@ -11,11 +11,11 @@ function VerifyEmailPage() {
   const [sendVerification, { isLoading: isSending }] = useSendVerificationMutation();
   const [resendVerification, { isLoading: isResending }] = useResendVerificationMutation();
 
-  const initialEmail = (location.state as { email?: string } | null)?.email ?? "";
-  const [email, setEmail] = useState(initialEmail);
+  const locationState = location.state as { email?: string; message?: string } | null;
+  const [email, setEmail] = useState(locationState?.email ?? "");
   const [errorMessage, setErrorMessage] = useState("");
   const [fieldError, setFieldError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(locationState?.message ?? "");
   const [sent, setSent] = useState(false);
 
   const handleSend = async () => {

@@ -69,6 +69,39 @@ export interface ChangePasswordResponse {
   message: string;
 }
 
+export interface UserProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  created_at: string | null;
+}
+
+export interface GetUserProfileResponse {
+  message?: string;
+  data: UserProfile | null;
+}
+
+export interface UpdateUserProfileRequest {
+  first_name: string;
+  last_name: string;
+  email: string;
+}
+
+export interface UpdateUserProfileResponse {
+  message?: string;
+  requiresEmailVerification: boolean;
+}
+
+export interface DeleteUserAccountRequest {
+  reasons: string[];
+  reason_details: string;
+}
+
+export interface DeleteUserAccountResponse {
+  message?: string;
+}
+
 export interface ResendVerificationRequest {
   email: string;
 }

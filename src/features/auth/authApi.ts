@@ -24,6 +24,11 @@ import type {
   ResetPasswordResponse,
   ChangePasswordRequest,
   ChangePasswordResponse,
+  GetUserProfileResponse,
+  UpdateUserProfileRequest,
+  UpdateUserProfileResponse,
+  DeleteUserAccountRequest,
+  DeleteUserAccountResponse,
   ResendVerificationRequest,
   ResendVerificationResponse,
   Service,
@@ -556,6 +561,42 @@ function normalizePlatformStatistics(payload: unknown): PlatformStatistics {
     excellent_reviews_count: pickCount(source, "excellent_reviews_count"),
     verified_shops_count: pickCount(source, "verified_shops_count"),
     reviews: reviewsRaw.map(normalizePlatformReview).filter((item): item is PlatformReview => item !== null),
+  };
+}
+
+/** The user may be returned as `data`, `data.user`, `user` or the body itself. */
+function findUserRecord(body: Record<string, unknown> | null, key: string) {
+  const data = asObject(body?.data);
+  return [data, asObject(data?.user), asObject(body?.user), body].find((item) => item != null && key in item) ?? null;
+}
+
+function normalizeUserProfile(payload: unknown): GetUserProfileResponse {
+  const body = asObject(payload);
+  const message = typeof body?.message === "string" ? body.message : undefined;
+  const raw = findUserRecord(body, "email");
+
+  if (!raw) return { message, data: null };
+
+  return {
+    message,
+    data: {
+      id: raw.id == null ? "" : String(raw.id),
+      first_name: String(raw.first_name ?? "").trim(),
+      last_name: String(raw.last_name ?? "").trim(),
+      email: String(raw.email ?? "").trim(),
+      created_at: raw.created_at == null || raw.created_at === "" ? null : String(raw.created_at),
+    },
+  };
+}
+
+function normalizeUpdateUserProfileResponse(payload: unknown): UpdateUserProfileResponse {
+  const body = asObject(payload);
+  const user = findUserRecord(body, "email_verified_at");
+
+  return {
+    message: typeof body?.message === "string" ? body.message : undefined,
+    // Changing the email resets email_verified_at to null until the new address is verified.
+    requiresEmailVerification: user !== null && user.email_verified_at === null,
   };
 }
 
@@ -1991,7 +2032,7 @@ const rawBaseQuery = fetchBaseQuery({
 
 export const baseApi = createApi({
   reducerPath: "api",
-  tagTypes: ["ShopProfile", "ShopProducts", "Favorites", "Countries", "Cities", "Brands", "DeviceModels", "Categories", "Products", "Services", "ShopOwnerVerifications", "AdminShopOwners", "ShopFeatures", "ShopReviews", "ShopOwnerReviews", "RepairRequests", "Notifications", "ContactMessages", "Roles", "RolePermissions", "Complaints"],
+  tagTypes: ["UserProfile", "ShopProfile", "ShopProducts", "Favorites", "Countries", "Cities", "Brands", "DeviceModels", "Categories", "Products", "Services", "ShopOwnerVerifications", "AdminShopOwners", "ShopFeatures", "ShopReviews", "ShopOwnerReviews", "RepairRequests", "Notifications", "ContactMessages", "Roles", "RolePermissions", "Complaints"],
   baseQuery: (async (args, api, extraOptions) => {
     const result = await rawBaseQuery(args, api, extraOptions);
 
@@ -2056,6 +2097,34 @@ export const baseApi = createApi({
       query: (body) => ({
         url: "/auth/change-password",
         method: "POST",
+        body,
+      }),
+    }),
+
+    getUserProfile: build.query<GetUserProfileResponse, void>({
+      query: () => ({
+        url: "/user-settings/profile",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeUserProfile(response),
+      providesTags: ["UserProfile"],
+    }),
+
+    updateUserProfile: build.mutation<UpdateUserProfileResponse, UpdateUserProfileRequest>({
+      query: (body) => ({
+        url: "/user-settings/profile",
+        method: "PUT",
+        body,
+      }),
+      transformResponse: (response: unknown) => normalizeUpdateUserProfileResponse(response),
+      // No refetch when the user is about to be logged out to verify the new email.
+      invalidatesTags: (result) => (result?.requiresEmailVerification ? [] : ["UserProfile"]),
+    }),
+
+    deleteUserAccount: build.mutation<DeleteUserAccountResponse, DeleteUserAccountRequest>({
+      query: (body) => ({
+        url: "/user-settings/account",
+        method: "DELETE",
         body,
       }),
     }),
@@ -3047,6 +3116,9 @@ export const {
   usePasswordSendCodeMutation,
   usePasswordResetMutation,
   useChangePasswordMutation,
+  useGetUserProfileQuery,
+  useUpdateUserProfileMutation,
+  useDeleteUserAccountMutation,
   useSendVerificationMutation,
   useResendVerificationMutation,
   useGetAllCountriesQuery,
