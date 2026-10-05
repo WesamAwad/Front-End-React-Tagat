@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Heart, KeyRound, LogOut, Menu, UserRound, X } from "lucide-react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { ChevronDown, Heart, LayoutDashboard, LogOut, Menu, UserRound, X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { logout } from "../../features/auth/authSlice";
-import { isCustomerSession } from "../../features/auth/authRoles";
+import { getPostLoginPath, isCustomerSession } from "../../features/auth/authRoles";
 import { useLogoutClientMutation } from "../../features/auth/authApi";
 import { useFavoriteShopLookup } from "../../features/favorites/useFavoriteShopLookup";
 import { NotificationsBell } from "../../features/notifications/NotificationsBell";
@@ -12,7 +12,7 @@ import logo from "../../assets/SwiftFix-Logo.svg";
 const navLinks = [
   { to: "/", label: "الرئيسية", end: true },
   { to: "/workshops", label: "الورشات" },
-  { to: "/ai-diagnosis", label: "تشخيص AI" },
+  { to: "/bookings", label: "حجوزاتي" },
   { to: "/about", label: "من نحن" },
   { to: "/contact", label: "تواصل معنا" },
 ];
@@ -26,9 +26,9 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
   const user = useAppSelector((state) => state.auth.user);
   const isCustomer = isCustomerSession(user?.role);
+  const visibleNavLinks = navLinks.filter((link) => link.to !== "/bookings" || isCustomer);
   const [logoutClient] = useLogoutClientMutation();
   const { count: favoritesCount } = useFavoriteShopLookup();
 
@@ -69,7 +69,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-8 lg:flex">
-          {navLinks.map((link) => (
+          {visibleNavLinks.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end} className={navLinkClass}>
               {link.label}
             </NavLink>
@@ -103,7 +103,7 @@ export function Header() {
             </>
           ) : null}
 
-          {isCustomer && user ? (
+          {user ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
@@ -136,15 +136,16 @@ export function Header() {
                       <UserRound className="size-4" />
                       ملفي الشخصي
                     </Link>
-                    <Link
-                      to="/change-password"
-                      state={{ from: location.pathname }}
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary/80 transition hover:bg-primary-light"
-                    >
-                      <KeyRound className="size-4" />
-                      تغيير كلمة المرور
-                    </Link>
+                    {!isCustomer && (
+                      <Link
+                        to={getPostLoginPath(user.role)}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-primary/80 transition hover:bg-primary-light"
+                      >
+                        <LayoutDashboard className="size-4" />
+                        لوحة التحكم
+                      </Link>
+                    )}
                   </div>
 
                   <div className="border-t border-primary/10 py-1">
@@ -189,7 +190,7 @@ export function Header() {
       {isMenuOpen && (
         <div className="bg-white lg:hidden">
           <nav className="flex flex-col gap-1 px-4 py-4 sm:px-6">
-            {navLinks.map((link) => (
+            {visibleNavLinks.map((link) => (
               <NavLink
                 key={link.to}
                 to={link.to}
@@ -201,7 +202,7 @@ export function Header() {
               </NavLink>
             ))}
 
-            {!isCustomer && (
+            {!user && (
               <div className="mt-3 flex flex-col gap-2 pt-3">
                 <Link to="/signup" className="rounded-lg border border-primary px-3 py-2.5 text-center text-base font-semibold text-primary transition hover:bg-primary-light" onClick={closeMenu}>
                   إنشاء الحساب

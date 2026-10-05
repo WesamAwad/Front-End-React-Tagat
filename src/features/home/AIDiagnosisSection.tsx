@@ -1,4 +1,5 @@
 import aiRobotImg from "../../assets/ai-robot.webp";
+import { openAIChat } from "../ai/openAIChat";
 
 export function AIDiagnosisSection() {
   return (
@@ -14,7 +15,12 @@ export function AIDiagnosisSection() {
 
           <p className="mt-4 text-base leading-relaxed text-gray-500">صف مشكلتك او ارفع صورة لجهازك ودع الذكاء الاصطناعي يحدد السبب ويقترح الحلول المناسبه في زيارة الورشة</p>
 
-          <button type="button" className="mt-8 cursor-pointer rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-white transition hover:bg-secondary-hover">
+          <button
+            type="button"
+            onClick={openAIChat}
+            aria-haspopup="dialog"
+            className="mt-8 cursor-pointer rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-white transition hover:bg-secondary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
+          >
             افحص المشكلة الان
           </button>
         </div>

@@ -29,7 +29,7 @@ export function WorkshopDetailsContactSidebar({ workshop }: WorkshopDetailsConta
             className="flex flex-1 items-center justify-center gap-1 rounded bg-primary px-4 py-2.5 text-[13px] font-semibold text-white transition hover:bg-primary-hover"
           >
             <Calendar className="size-4 shrink-0" aria-hidden="true" />
-            <span>احجز موعد</span>
+            <span>إرسال طلب</span>
           </Link>
           <button type="button" className="flex flex-1 items-center justify-center gap-1 rounded bg-primary-light px-4 py-2.5 text-[13px] font-semibold text-primary transition hover:bg-primary/10">
             <MessageCircle className="size-4 shrink-0" aria-hidden="true" />

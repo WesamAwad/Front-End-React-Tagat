@@ -27,6 +27,8 @@ import type {
   GetUserProfileResponse,
   UpdateUserProfileRequest,
   UpdateUserProfileResponse,
+  GetAccountDeletionReasonsResponse,
+  AccountDeletionReason,
   DeleteUserAccountRequest,
   DeleteUserAccountResponse,
   ResendVerificationRequest,
@@ -59,6 +61,8 @@ import type {
   RepairRequestCustomer,
   RepairRequestNamedRef,
   GetAllRepairRequestsResponse,
+  GetMyRepairRequestsResponse,
+  CustomerRepairRequest,
   RepairRequestMutationResponse,
   ContactMessage,
   GetAllContactMessagesResponse,
@@ -550,8 +554,7 @@ function normalizePlatformReview(value: unknown): PlatformReview | null {
 function normalizePlatformStatistics(payload: unknown): PlatformStatistics {
   const root = asObject(payload);
   const nested = root ? asObject(root.data) : null;
-  const source =
-    nested && ("customers_count" in nested || "reviews" in nested || "completed_requests_count" in nested) ? nested : (root ?? {});
+  const source = nested && ("customers_count" in nested || "reviews" in nested || "completed_requests_count" in nested) ? nested : (root ?? {});
 
   const reviewsRaw = Array.isArray(source.reviews) ? source.reviews : [];
 
@@ -620,11 +623,7 @@ function normalizeMapShopProduct(row: Record<string, unknown>): MapShopSearchPro
     };
   }
 
-  const shopProducts = Array.isArray(row.shopProducts)
-    ? row.shopProducts
-    : Array.isArray(row.shop_products)
-      ? row.shop_products
-      : [];
+  const shopProducts = Array.isArray(row.shopProducts) ? row.shopProducts : Array.isArray(row.shop_products) ? row.shop_products : [];
   const first = asObject(shopProducts[0]);
   if (!first) return null;
 
@@ -670,13 +669,7 @@ function normalizeMapShopSearchResult(item: unknown): MapShopSearchResult | null
 
 function normalizeSearchShopMapResponse(payload: unknown): MapShopSearchResult[] {
   const root = asObject(payload);
-  const list = Array.isArray(payload)
-    ? payload
-    : Array.isArray(root?.shops)
-      ? root.shops
-      : Array.isArray(root?.data)
-        ? root.data
-        : [];
+  const list = Array.isArray(payload) ? payload : Array.isArray(root?.shops) ? root.shops : Array.isArray(root?.data) ? root.data : [];
 
   return list.map(normalizeMapShopSearchResult).filter((item): item is MapShopSearchResult => item !== null);
 }
@@ -858,13 +851,7 @@ function normalizeRole(item: unknown): AppRole | null {
 
 function normalizeRoles(payload: unknown): GetAllRolesResponse {
   const body = payload as { roles?: unknown; data?: unknown; message?: string } | unknown[];
-  const list = Array.isArray(body)
-    ? body
-    : Array.isArray((body as { roles?: unknown }).roles)
-      ? (body as { roles: unknown[] }).roles
-      : Array.isArray((body as { data?: unknown }).data)
-        ? (body as { data: unknown[] }).data
-        : [];
+  const list = Array.isArray(body) ? body : Array.isArray((body as { roles?: unknown }).roles) ? (body as { roles: unknown[] }).roles : Array.isArray((body as { data?: unknown }).data) ? (body as { data: unknown[] }).data : [];
 
   return {
     message: Array.isArray(body) ? undefined : (body as { message?: string }).message,
@@ -1747,6 +1734,55 @@ function normalizeRepairRequest(item: unknown): RepairRequest | null {
   };
 }
 
+function readNamedValue(value: unknown, fallbackKeys: string[]) {
+  if (typeof value === "string" || typeof value === "number") return String(value).trim();
+  if (!value || typeof value !== "object") return "";
+  const row = value as Record<string, unknown>;
+  for (const key of fallbackKeys) {
+    const candidate = row[key];
+    if (typeof candidate === "string" || typeof candidate === "number") {
+      const text = String(candidate).trim();
+      if (text) return text;
+    }
+  }
+  return "";
+}
+
+function normalizeCustomerRepairRequest(item: unknown, index: number): CustomerRepairRequest | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const shop = row.shop && typeof row.shop === "object" ? (row.shop as Record<string, unknown>) : null;
+  const shopName = String(row.shop_name ?? shop?.shop_name ?? "").trim();
+  const deviceName = readNamedValue(row.device_model_name, []) || readNamedValue(row.device_model ?? row.deviceModel, ["name", "device_model_name"]);
+  const serviceName = readNamedValue(row.service_name, []) || readNamedValue(row.service, ["name", "service_name"]);
+  const status = String(row.status ?? "").trim();
+  const createdAt = String(row.created_at ?? "").trim();
+
+  if (!shopName && !deviceName && !serviceName && !status && !createdAt) return null;
+
+  const id = String(row.id ?? "").trim() || `${index}-${createdAt}-${shopName}`;
+
+  return {
+    id,
+    shop_name: shopName,
+    status,
+    device_model_name: deviceName,
+    service_name: serviceName,
+    created_at: createdAt,
+  };
+}
+
+function normalizeMyRepairRequests(payload: unknown): GetMyRepairRequestsResponse {
+  const body = payload as { data?: unknown; message?: string } | unknown[];
+  const list = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+
+  return {
+    message: Array.isArray(body) ? undefined : body?.message,
+    data: list.map((item, index) => normalizeCustomerRepairRequest(item, index)).filter((item): item is CustomerRepairRequest => item !== null),
+  };
+}
+
 function normalizeRepairRequests(payload: unknown): GetAllRepairRequestsResponse {
   const body = payload as { data?: unknown; repair_requests?: unknown; message?: string } | unknown[];
 
@@ -1780,7 +1816,10 @@ function normalizeContactMessage(item: unknown): ContactMessage | null {
     email: String(row.email ?? "").trim(),
     subject: String(row.subject ?? "").trim(),
     message: String(row.message ?? "").trim(),
-    status: String(row.status ?? "").trim().toLowerCase() || "pending",
+    status:
+      String(row.status ?? "")
+        .trim()
+        .toLowerCase() || "pending",
     adminReply: reply || null,
     repliedAt: repliedAt || null,
     date: String(row.created_at ?? row.createdAt ?? row.date ?? "").trim(),
@@ -1829,7 +1868,10 @@ function normalizeComplaint(item: unknown): Complaint | null {
   const shopRaw = row.shop && typeof row.shop === "object" ? (row.shop as Record<string, unknown>) : null;
   const reply = String(row.admin_reply ?? row.adminReply ?? "").trim();
   const repliedAt = String(row.replied_at ?? row.repliedAt ?? "").trim();
-  const status = String(row.status ?? "").trim().toLowerCase() || "pending";
+  const status =
+    String(row.status ?? "")
+      .trim()
+      .toLowerCase() || "pending";
 
   return {
     id,
@@ -2019,6 +2061,49 @@ function normalizeReplyShopReviewResponse(payload: unknown): ReplyShopReviewResp
   };
 }
 
+function isActiveFlag(value: unknown) {
+  if (value === true || value === 1 || value === "1") return true;
+  if (value === false || value === 0 || value === "0") return false;
+  return null;
+}
+
+function isDeletionReasonActive(row: Record<string, unknown>) {
+  const active = isActiveFlag(row.is_active);
+  if (active != null) return active;
+
+  const hidden = isActiveFlag(row.is_hidden);
+  if (hidden != null) return !hidden;
+
+  const visible = isActiveFlag(row.is_visible ?? row.visible);
+  if (visible != null) return visible;
+
+  return true;
+}
+
+function normalizeAccountDeletionReason(item: unknown): AccountDeletionReason | null {
+  if (!item || typeof item !== "object") return null;
+
+  const row = item as Record<string, unknown>;
+  const id = Number(row.id);
+  const reason = String(row.reason ?? row.name ?? "").trim();
+  if (!Number.isFinite(id) || !reason) return null;
+
+  return {
+    id,
+    reason,
+    is_active: isDeletionReasonActive(row),
+  };
+}
+
+function normalizeAccountDeletionReasons(payload: unknown): GetAccountDeletionReasonsResponse {
+  const body = payload as { data?: unknown } | unknown[];
+  const list = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+
+  return {
+    data: list.map((item) => normalizeAccountDeletionReason(item)).filter((item): item is AccountDeletionReason => item !== null),
+  };
+}
+
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL,
   prepareHeaders: (headers, { getState }) => {
@@ -2032,7 +2117,32 @@ const rawBaseQuery = fetchBaseQuery({
 
 export const baseApi = createApi({
   reducerPath: "api",
-  tagTypes: ["UserProfile", "ShopProfile", "ShopProducts", "Favorites", "Countries", "Cities", "Brands", "DeviceModels", "Categories", "Products", "Services", "ShopOwnerVerifications", "AdminShopOwners", "ShopFeatures", "ShopReviews", "ShopOwnerReviews", "RepairRequests", "Notifications", "ContactMessages", "Roles", "RolePermissions", "Complaints"],
+  tagTypes: [
+    "UserProfile",
+    "AccountDeletionReasons",
+    "AllAccountDeletionReasons",
+    "ShopProfile",
+    "ShopProducts",
+    "Favorites",
+    "Countries",
+    "Cities",
+    "Brands",
+    "DeviceModels",
+    "Categories",
+    "Products",
+    "Services",
+    "ShopOwnerVerifications",
+    "AdminShopOwners",
+    "ShopFeatures",
+    "ShopReviews",
+    "ShopOwnerReviews",
+    "RepairRequests",
+    "Notifications",
+    "ContactMessages",
+    "Roles",
+    "RolePermissions",
+    "Complaints",
+  ],
   baseQuery: (async (args, api, extraOptions) => {
     const result = await rawBaseQuery(args, api, extraOptions);
 
@@ -2121,12 +2231,54 @@ export const baseApi = createApi({
       invalidatesTags: (result) => (result?.requiresEmailVerification ? [] : ["UserProfile"]),
     }),
 
+    getAccountDeletionReasons: build.query<GetAccountDeletionReasonsResponse, void>({
+      query: () => ({
+        url: "/user-settings/get/deletion-reasons",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeAccountDeletionReasons(response),
+      providesTags: ["AccountDeletionReasons"],
+    }),
+
+    getAllAccountDeletionReasons: build.query<GetAccountDeletionReasonsResponse, void>({
+      query: () => ({
+        url: "/user-settings/get/all-deletion-reasons",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeAccountDeletionReasons(response),
+      providesTags: ["AllAccountDeletionReasons"],
+    }),
+
+    toggleAccountDeletionReason: build.mutation<{ message?: string }, number>({
+      query: (id) => ({
+        url: `/user-settings/deletion-reasons/${id}/toggle`,
+        method: "POST",
+      }),
+      invalidatesTags: ["AccountDeletionReasons", "AllAccountDeletionReasons"],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          baseApi.util.updateQueryData("getAllAccountDeletionReasons", undefined, (draft) => {
+            const reason = draft.data.find((item) => item.id === id);
+            if (reason) reason.is_active = !reason.is_active;
+          }),
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    }),
+
     deleteUserAccount: build.mutation<DeleteUserAccountResponse, DeleteUserAccountRequest>({
       query: (body) => ({
         url: "/user-settings/account",
         method: "DELETE",
         body,
       }),
+      // A failure may mean one of the chosen reasons was deactivated, so reload the list.
+      invalidatesTags: (_result, error) => (error ? ["AccountDeletionReasons"] : []),
     }),
 
     sendVerification: build.mutation<ResendVerificationResponse, ResendVerificationRequest>({
@@ -2381,7 +2533,7 @@ export const baseApi = createApi({
 
     getDeviceModelsAll: build.query<GetAllDeviceModelsResponse, void>({
       query: () => ({
-        url: "/device-models/get-all",
+        url: "/device-models/for-select",
         method: "GET",
       }),
       transformResponse: (response: unknown) => normalizeDeviceModels(response),
@@ -2711,6 +2863,15 @@ export const baseApi = createApi({
         method: "GET",
       }),
       transformResponse: (response: unknown) => normalizeRepairRequests(response),
+      providesTags: ["RepairRequests"],
+    }),
+
+    getMyRepairRequests: build.query<GetMyRepairRequestsResponse, void>({
+      query: () => ({
+        url: "/customer/repair-requests",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeMyRepairRequests(response),
       providesTags: ["RepairRequests"],
     }),
 
@@ -3118,6 +3279,9 @@ export const {
   useChangePasswordMutation,
   useGetUserProfileQuery,
   useUpdateUserProfileMutation,
+  useGetAccountDeletionReasonsQuery,
+  useGetAllAccountDeletionReasonsQuery,
+  useToggleAccountDeletionReasonMutation,
   useDeleteUserAccountMutation,
   useSendVerificationMutation,
   useResendVerificationMutation,
@@ -3179,6 +3343,7 @@ export const {
   useGetPublicShopDetailsQuery,
   useStoreRepairRequestMutation,
   useGetAllRepairRequestsQuery,
+  useGetMyRepairRequestsQuery,
   useApproveRepairRequestMutation,
   useRejectRepairRequestMutation,
   useCompleteRepairRequestMutation,

@@ -2,10 +2,9 @@ import { useId, useRef, useState, type FormEvent } from "react";
 import closeIcon from "../../../assets/profile/dialog-close.svg";
 import checkedIcon from "../../../assets/profile/checkbox-checked.svg";
 import uncheckedIcon from "../../../assets/profile/checkbox-unchecked.svg";
+import { useGetAccountDeletionReasonsQuery } from "../../auth/authApi";
 import type { DeleteUserAccountRequest } from "../../../types/authTypes";
 import { useModalDialog } from "./useModalDialog";
-
-const deleteReasons = ["لم أعد بحاجة إلى خدمات سويفت فيكس", "لم أجد فرصًا مناسبة", "واجهت مشكلة في استخدام المنصة", "لا أرغب في استخدام المنصة حاليًا", "أخرى"];
 
 type DeleteAccountDialogProps = {
   isLoading: boolean;
@@ -17,10 +16,12 @@ type DeleteAccountDialogProps = {
 export function DeleteAccountDialog({ isLoading, error, onConfirm, onClose }: DeleteAccountDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
-  const detailsId = useId();
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  const [selectedReasons, setSelectedReasons] = useState<string[]>([]);
-  const [details, setDetails] = useState("");
+  const { data: reasonsData, isLoading: isReasonsLoading, isError: isReasonsError, refetch: refetchReasons } = useGetAccountDeletionReasonsQuery();
+  const [selectedReasonIds, setSelectedReasonIds] = useState<number[]>([]);
+  const reasons = (reasonsData?.data ?? []).filter((item) => item.is_active);
+  // Ignore selections that are no longer offered, e.g. a reason deactivated while the dialog was open.
+  const validReasonIds = selectedReasonIds.filter((id) => reasons.some((item) => item.id === id));
 
   const closeUnlessDeleting = () => {
     if (!isLoading) onClose();
@@ -28,13 +29,14 @@ export function DeleteAccountDialog({ isLoading, error, onConfirm, onClose }: De
 
   useModalDialog(cancelButtonRef, closeUnlessDeleting);
 
-  const toggleReason = (reason: string) => {
-    setSelectedReasons((current) => (current.includes(reason) ? current.filter((item) => item !== reason) : [...current, reason]));
+  const toggleReason = (id: number) => {
+    setSelectedReasonIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    onConfirm({ reasons: selectedReasons, reason_details: details.trim() });
+    if (validReasonIds.length === 0) return;
+    onConfirm({ reason_id: validReasonIds });
   };
 
   return (
@@ -59,32 +61,33 @@ export function DeleteAccountDialog({ isLoading, error, onConfirm, onClose }: De
 
           <fieldset className="flex flex-col items-start gap-4" disabled={isLoading}>
             <legend className="sr-only">سبب حذف الحساب</legend>
-            {deleteReasons.map((reason) => {
-              const checked = selectedReasons.includes(reason);
+            {isReasonsLoading ? (
+              <p className="text-sm text-label" role="status">
+                جاري تحميل الأسباب...
+              </p>
+            ) : isReasonsError ? (
+              <div className="flex flex-wrap items-center gap-3 text-sm text-red-700" role="alert">
+                <p>تعذر تحميل أسباب الحذف.</p>
+                <button type="button" onClick={() => refetchReasons()} className="font-semibold underline-offset-4 hover:underline">
+                  إعادة المحاولة
+                </button>
+              </div>
+            ) : reasons.length === 0 ? (
+              <p className="text-sm text-label">لا توجد أسباب حذف متاحة حالياً.</p>
+            ) : (
+              reasons.map((item) => {
+                const checked = validReasonIds.includes(item.id);
 
-              return (
-                <label key={reason} className="flex cursor-pointer items-center gap-3 text-sm leading-normal text-[#030000]">
-                  <input type="checkbox" checked={checked} onChange={() => toggleReason(reason)} className="peer sr-only" />
-                  <img src={checked ? checkedIcon : uncheckedIcon} alt="" width={24} height={24} className="shrink-0 rounded-md peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40" />
-                  {reason}
-                </label>
-              );
-            })}
+                return (
+                  <label key={item.id} className="flex cursor-pointer items-center gap-3 text-sm leading-normal text-[#030000]">
+                    <input type="checkbox" name="reason_id" value={item.id} checked={checked} onChange={() => toggleReason(item.id)} className="peer sr-only" />
+                    <img src={checked ? checkedIcon : uncheckedIcon} alt="" width={24} height={24} className="shrink-0 rounded-md peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40" />
+                    {item.reason}
+                  </label>
+                );
+              })
+            )}
           </fieldset>
-
-          <div>
-            <label htmlFor={detailsId} className="sr-only">
-              سبب الحذف
-            </label>
-            <textarea
-              id={detailsId}
-              value={details}
-              onChange={(event) => setDetails(event.target.value)}
-              disabled={isLoading}
-              placeholder="اكتب سبب الحذف"
-              className="block h-21.5 w-full resize-none rounded-lg bg-[#f7f7f7] px-2 py-4 text-xs font-medium text-[#030000] outline-none transition placeholder:text-[#898989] focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
 
           {error ? (
             <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
@@ -93,7 +96,11 @@ export function DeleteAccountDialog({ isLoading, error, onConfirm, onClose }: De
           ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-6">
-            <button type="submit" disabled={isLoading} className="h-12 flex-1 rounded-3xl bg-[#f44336] px-4 text-sm font-bold text-white transition enabled:hover:bg-[#e53935] disabled:opacity-70">
+            <button
+              type="submit"
+              disabled={isLoading || validReasonIds.length === 0}
+              className="h-12 flex-1 rounded-3xl bg-[#f44336] px-4 text-sm font-bold text-white transition enabled:hover:bg-[#e53935] disabled:opacity-50"
+            >
               {isLoading ? "جاري الحذف..." : "حذف الحساب"}
             </button>
             <button ref={cancelButtonRef} type="button" onClick={onClose} disabled={isLoading} className="h-12 flex-1 rounded-3xl bg-[#f7f7f7] px-4 text-sm font-bold text-[#2c2c2c] transition enabled:hover:bg-[#ededed] disabled:opacity-70">

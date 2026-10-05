@@ -93,9 +93,18 @@ export interface UpdateUserProfileResponse {
   requiresEmailVerification: boolean;
 }
 
+export interface AccountDeletionReason {
+  id: number;
+  reason: string;
+  is_active: boolean;
+}
+
+export interface GetAccountDeletionReasonsResponse {
+  data: AccountDeletionReason[];
+}
+
 export interface DeleteUserAccountRequest {
-  reasons: string[];
-  reason_details: string;
+  reason_id: number[];
 }
 
 export interface DeleteUserAccountResponse {
@@ -471,6 +480,20 @@ export interface RepairRequest {
 export interface GetAllRepairRequestsResponse {
   message?: string;
   data: RepairRequest[];
+}
+
+export interface CustomerRepairRequest {
+  id: string;
+  shop_name: string;
+  status: string;
+  device_model_name: string;
+  service_name: string;
+  created_at: string;
+}
+
+export interface GetMyRepairRequestsResponse {
+  message?: string;
+  data: CustomerRepairRequest[];
 }
 
 export interface RepairRequestMutationResponse {

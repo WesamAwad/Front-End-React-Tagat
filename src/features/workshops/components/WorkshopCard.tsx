@@ -120,12 +120,22 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
         ) : null}
 
         {shop.services.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5">
-            {shop.services.map((service) => (
-              <span key={service} className="rounded-md bg-secondary/10 px-2 py-1 text-[10px] text-gray-800">
-                {service}
-              </span>
-            ))}
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            {shop.services.slice(0, 3).map((service, index) => {
+              const isLastVisible = index === Math.min(shop.services.length, 3) - 1;
+              const hasMore = shop.services.length > 3;
+
+              return (
+                <span key={service} className="inline-flex max-w-full min-w-0 items-center gap-1">
+                  <span className="min-w-0 truncate rounded-md bg-secondary/10 px-2 py-1 text-[10px] text-gray-800">{service}</span>
+                  {isLastVisible && hasMore ? (
+                    <span className="shrink-0 text-xs leading-none text-gray-500" aria-label={`${shop.services.length - 3} خدمات إضافية`}>
+                      ...
+                    </span>
+                  ) : null}
+                </span>
+              );
+            })}
           </div>
         ) : null}
 
@@ -136,7 +146,7 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
             to={`/workshops/booking?shop_id=${encodeURIComponent(shop.id)}&shop_name=${encodeURIComponent(shop.shop_name)}`}
             className="flex flex-1 items-center justify-center rounded-md bg-primary py-2 text-sm font-bold text-white transition hover:bg-primary-hover"
           >
-            احجز موعد
+            إرسال طلب
           </Link>
           <Link
             to={`/workshops/${shop.id}`}

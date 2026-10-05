@@ -19,6 +19,13 @@ function getErrorMessage(error: unknown) {
   return ((error as { data?: AuthValidationErrorResponse } | undefined)?.data?.message ?? "").trim();
 }
 
+function getDeleteAccountErrorMessage(error: unknown) {
+  const errors = (error as { data?: AuthValidationErrorResponse } | undefined)?.data?.errors ?? {};
+  // Laravel keys errors for array items as "reason_id.0", "reason_id.1", ...
+  const reasonError = Object.entries(errors).find(([key]) => key === "reason_id" || key.startsWith("reason_id."))?.[1]?.[0];
+  return reasonError || getErrorMessage(error) || "تعذر حذف الحساب، حاول مرة أخرى.";
+}
+
 function CustomerProfilePage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -33,7 +40,6 @@ function CustomerProfilePage() {
   const profile = profileData?.data ?? null;
   const isProfilePending = isProfileLoading || (isProfileFetching && !profile);
   const fullName = `${profile?.first_name ?? user?.first_name ?? ""} ${profile?.last_name ?? user?.last_name ?? ""}`.trim();
-  const userId = profile?.id || (user?.id != null ? String(user.id) : "");
 
   const closeDeleteDialog = () => {
     setIsDeleteDialogOpen(false);
@@ -48,7 +54,7 @@ function CustomerProfilePage() {
       setIsDeleteDialogOpen(false);
       setIsAccountDeleted(true);
     } catch (error) {
-      setDeleteError(getErrorMessage(error) || "تعذر حذف الحساب، حاول مرة أخرى.");
+      setDeleteError(getDeleteAccountErrorMessage(error));
     }
   };
 
@@ -92,7 +98,7 @@ function CustomerProfilePage() {
             <ChangePasswordForm onSaved={(message) => setToast({ title: "تم تغيير كلمة المرور", message })} />
           </ProfileSection>
 
-          <AccountInfoSection userId={userId} createdAt={profile?.created_at ?? null} onDeleteClick={() => setIsDeleteDialogOpen(true)} />
+          <AccountInfoSection onDeleteClick={() => setIsDeleteDialogOpen(true)} />
         </div>
       </div>
 

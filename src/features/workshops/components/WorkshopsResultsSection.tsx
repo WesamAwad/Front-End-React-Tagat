@@ -1,12 +1,21 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, LayoutGrid, List, MapPinned } from "lucide-react";
 import { useGetAllPublicShopsQuery } from "../../auth/authApi";
 import { isShopInFavorites } from "../../favorites/favoriteUtils";
 import { useFavoriteShopLookup } from "../../favorites/useFavoriteShopLookup";
+import { getPageSlice } from "../../../utils/getPageSlice";
 import type { WorkshopsUiFilters } from "./WorkshopsFiltersSidebar";
 import { WorkshopCard } from "./WorkshopCard";
 
 const EMPTY_SHOPS: never[] = [];
+const PAGE_SIZE = 9;
+
+function visiblePageNumbers(current: number, total: number): Array<number | "ellipsis"> {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  if (current <= 3) return [1, 2, 3, 4, "ellipsis", total];
+  if (current >= total - 2) return [1, "ellipsis", total - 3, total - 2, total - 1, total];
+  return [1, "ellipsis", current - 1, current, current + 1, "ellipsis", total];
+}
 
 type WorkshopsResultsSectionProps = {
   filters: WorkshopsUiFilters;
@@ -14,9 +23,16 @@ type WorkshopsResultsSectionProps = {
   onToggleMapSearch: () => void;
 };
 
+function filtersKey(filters: WorkshopsUiFilters) {
+  return [filters.name, filters.city_name, filters.status, filters.service_id, filters.price, filters.product_name, filters.rating, filters.verified_only].join("|");
+}
+
 export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSearch }: WorkshopsResultsSectionProps) {
+  const resultsRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [currentPage, setCurrentPage] = useState(1);
+  const activeFiltersKey = filtersKey(filters);
+  const [pageState, setPageState] = useState({ key: activeFiltersKey, page: 1 });
+  const requestedPage = pageState.key === activeFiltersKey ? pageState.page : 1;
 
   const { data, isLoading, isError, isFetching } = useGetAllPublicShopsQuery({
     name: filters.name,
@@ -32,6 +48,16 @@ export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSea
 
   const shops = data?.data ?? EMPTY_SHOPS;
   const totalWorkshops = shops.length;
+  const { pageItems, currentPage, totalPages } = getPageSlice(shops, requestedPage, PAGE_SIZE);
+  const rangeStart = totalWorkshops === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = rangeStart + pageItems.length - 1;
+
+  const goToPage = (page: number) => {
+    const nextPage = Math.min(Math.max(1, page), totalPages);
+    setPageState({ key: activeFiltersKey, page: nextPage });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    resultsRef.current?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+  };
 
   const filterHints = [
     filters.name ? `اسم: ${filters.name}` : null,
@@ -64,7 +90,7 @@ export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSea
   }
 
   return (
-    <div className="min-w-0 flex-1">
+    <div ref={resultsRef} className="min-w-0 flex-1">
       {isFetching ? (
         <p className="mb-4 text-xs text-primary/70" role="status">
           جاري تحديث القائمة...
@@ -121,7 +147,7 @@ export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSea
         </div>
       ) : (
         <div className={viewMode === "grid" ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-4"}>
-          {shops.map((shop) => (
+          {pageItems.map((shop) => (
             <WorkshopCard key={shop.id} shop={shop} isFavorite={isShopInFavorites(shop, favoriteLookup)} />
           ))}
         </div>
@@ -130,7 +156,7 @@ export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSea
       {totalWorkshops > 0 ? (
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
-            عرض {totalWorkshops} من {totalWorkshops} ورشة
+            عرض {rangeStart}–{rangeEnd} من {totalWorkshops} ورشة
           </p>
 
           <div className="flex items-center gap-1">
@@ -138,18 +164,36 @@ export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSea
               type="button"
               aria-label="الصفحة السابقة"
               disabled={currentPage === 1}
-              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              onClick={() => goToPage(currentPage - 1)}
               className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition hover:border-primary/30 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronRight className="size-4" />
             </button>
-            <button type="button" className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-sm text-white">
-              {currentPage}
-            </button>
+            {visiblePageNumbers(currentPage, totalPages).map((page, index) =>
+              page === "ellipsis" ? (
+                <span key={`ellipsis-${index}`} className="px-1 text-sm text-gray-400" aria-hidden="true">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={page}
+                  type="button"
+                  aria-label={`الصفحة ${page}`}
+                  aria-current={page === currentPage ? "page" : undefined}
+                  onClick={() => goToPage(page)}
+                  className={`flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-sm transition ${
+                    page === currentPage ? "bg-primary text-white" : "border border-gray-200 text-gray-600 hover:border-primary/30"
+                  }`}
+                >
+                  {page}
+                </button>
+              ),
+            )}
             <button
               type="button"
               aria-label="الصفحة التالية"
-              disabled
+              disabled={currentPage === totalPages}
+              onClick={() => goToPage(currentPage + 1)}
               className="flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-600 transition hover:border-primary/30 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft className="size-4" />

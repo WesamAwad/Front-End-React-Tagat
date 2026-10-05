@@ -388,7 +388,7 @@ function WorkshopBookingPage() {
 
               {!shopId ? (
                 <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800" role="alert">
-                  لم يتم تحديد الورشة. اختر ورشة من صفحة الورشات ثم اضغط «احجز موعد».
+                  لم يتم تحديد الورشة. اختر ورشة من صفحة الورشات ثم اضغط «إرسال طلب».
                 </p>
               ) : null}
 

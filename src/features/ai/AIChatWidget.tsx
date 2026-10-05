@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Sparkles, X } from "lucide-react";
 import type { ShopRecommendation } from "./aiService";
+import { subscribeToOpenAIChat } from "./openAIChat";
 import { useAIChat } from "./useAIChat";
 
 const TOOLTIP_KEY = "swiftfix-ai-chat-tooltip-seen";
@@ -36,6 +37,16 @@ export function AIChatWidget() {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [showTooltip, setShowTooltip] = useState(() => !localStorage.getItem(TOOLTIP_KEY));
+
+  useEffect(() => {
+    const onOpen = () => {
+      setShowTooltip(false);
+      localStorage.setItem(TOOLTIP_KEY, "1");
+      setOpen(true);
+    };
+
+    return subscribeToOpenAIChat(onOpen);
+  }, []);
 
   useEffect(() => {
     if (!showTooltip) return;

@@ -13,11 +13,17 @@ export function NearbyWorkshopsSection() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm text-gray-400">الأعلى تقييماً</p>
           <h2 className="mt-1 text-2xl font-bold text-primary">ورش قريبه منك</h2>
         </div>
+        <Link
+          to="/workshops"
+          className="shrink-0 text-sm font-medium text-secondary transition hover:text-secondary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
+        >
+          عرض المزيد
+        </Link>
       </div>
 
       {isLoading ? (
@@ -38,11 +44,6 @@ export function NearbyWorkshopsSection() {
         </div>
       )}
 
-      <div className="mt-8 text-center">
-        <Link to="/workshops" className="text-sm font-medium text-secondary transition hover:text-secondary-hover">
-          عرض جميع الورش
-        </Link>
-      </div>
     </section>
   );
 }

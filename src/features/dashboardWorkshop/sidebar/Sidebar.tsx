@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardCheck, Boxes, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, KeyRound, LayoutDashboard, ListPlus, LogOut, MessageCircle, Settings, Shield, Star, Store, Package, Wrench, X } from "lucide-react";
+import { ClipboardCheck, Boxes, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, LayoutDashboard, ListPlus, LogOut, MessageCircle, Settings, Shield, Star, Store, Package, UserRound, UserX, Wrench, X } from "lucide-react";
 import logo from "../../../assets/SwiftFix-Logo.svg";
 import { useAppSelector } from "../../../store/hooks";
 import { useGetAllComplaintsQuery, useGetAllRepairRequestsQuery, useGetShopOwnerVerificationDataQuery } from "../../auth/authApi";
@@ -33,6 +33,7 @@ const navItems: NavItem[] = [
   { to: "/admin/devices", label: "الأجهزة", icon: Smartphone },
   { to: "/admin/services", label: "إضافة الخدمات", icon: Wrench },
   { to: "/admin/roles", label: "الأدوار والصلاحيات", icon: Shield },
+  { to: "/admin/deletion-reasons", label: "أسباب حذف الحساب", icon: UserX },
   { to: "/admin/categories", label: "الفئات", icon: Tags },
   { to: "/admin/products", label: "المنتجات", icon: Boxes },
   { to: "/admin/workshops", label: "الورش", icon: Store },
@@ -123,7 +124,6 @@ type SidebarProps = {
 };
 
 export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: SidebarProps) {
-  const location = useLocation();
   const role = useAppSelector((state) => state.auth.user?.role);
   const { data } = useGetShopOwnerVerificationDataQuery();
   const { data: repairRequests } = useGetAllRepairRequestsQuery(undefined, { skip: role !== "shopOwner" });
@@ -213,9 +213,9 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
       </div>
 
       <div className="space-y-1 border-t border-white/10 p-3">
-        <Link to="/change-password" state={{ from: location.pathname }} className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white/75 transition hover:bg-primary-hover hover:text-white" onClick={onClose}>
-          <KeyRound className="size-5 shrink-0" aria-hidden="true" />
-          <span>تغيير كلمة المرور</span>
+        <Link to="/profile" className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white/75 transition hover:bg-primary-hover hover:text-white" onClick={onClose}>
+          <UserRound className="size-5 shrink-0" aria-hidden="true" />
+          <span>ملفي الشخصي</span>
         </Link>
         <Link to="/" className="flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white/75 transition hover:bg-primary-hover hover:text-white" onClick={onClose}>
           <Home className="size-5 shrink-0" aria-hidden="true" />
