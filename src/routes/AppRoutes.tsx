@@ -43,7 +43,7 @@ import RolesPage from "../features/admin/roles/RolesPage";
 import DeletionReasonsPage from "../features/admin/deletionReasons/DeletionReasonsPage";
 import ErrorPage from "../components/ErrorPage";
 import { GuestRoute } from "../features/auth/GuestRoute";
-import { RoleRoute } from "../features/auth/RoleRoute";
+import { ProtectedRoute } from "../features/auth/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -94,7 +94,7 @@ export const router = createBrowserRouter([
         element: <BookingsPage />,
       },
       {
-        element: <RoleRoute allow={["customer", "shopOwner", "admin"]} />,
+        element: <ProtectedRoute />,
         children: [
           {
             path: "profile",
@@ -139,7 +139,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <RoleRoute allow="shopOwner" />,
+    element: <ProtectedRoute />,
     errorElement: <ErrorPage />,
     children: [
       {
@@ -176,12 +176,6 @@ export const router = createBrowserRouter([
           },
         ],
       },
-    ],
-  },
-  {
-    element: <RoleRoute allow="admin" />,
-    errorElement: <ErrorPage />,
-    children: [
       {
         path: "/admin",
         element: <DashboardLayout />,

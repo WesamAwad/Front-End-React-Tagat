@@ -59,7 +59,7 @@ function CustomerProfilePage() {
   };
 
   const leaveDeletedAccount = async () => {
-    // Leave this customer-only route before clearing the session, otherwise RoleRoute redirects to /login.
+    // Leave this protected route before clearing the session, otherwise ProtectedRoute redirects to /login.
     await navigate("/", { replace: true, flushSync: true });
     dispatch(logout());
     dispatch(baseApi.util.resetApiState());

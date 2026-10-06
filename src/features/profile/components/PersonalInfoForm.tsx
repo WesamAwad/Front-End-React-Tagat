@@ -54,7 +54,7 @@ export function PersonalInfoForm({ profile, onSaved }: PersonalInfoFormProps) {
 
       if (result.requiresEmailVerification) {
         // Logging out right before a flushSync navigation commits both in a single render, so the
-        // guest-only verify page renders instead of RoleRoute redirecting the logged-out user to /login.
+        // guest-only verify page renders instead of ProtectedRoute redirecting the logged-out user to /login.
         dispatch(logout());
         navigate("/verify-email", {
           replace: true,
