@@ -108,9 +108,9 @@ function formatProductPrice(price: string) {
   if (!trimmed) return "—";
   const numeric = Number(trimmed);
   if (Number.isFinite(numeric)) {
-    return `${numeric.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ر.س`;
+    return `${numeric.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ₪`;
   }
-  return `${trimmed} ر.س`;
+  return `${trimmed} ₪`;
 }
 
 function formatProductStatus(status: string) {

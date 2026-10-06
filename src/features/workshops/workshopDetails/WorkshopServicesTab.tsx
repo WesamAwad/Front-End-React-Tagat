@@ -29,7 +29,7 @@ export function WorkshopServicesTab({ workshop }: WorkshopServicesTabProps) {
             {service.priceMin > 0 || service.priceMax > 0 ? (
               <>
                 <p className="text-sm font-bold text-primary">
-                  <span className="text-xs font-normal">ر.س </span>
+                  <span className="text-xs font-normal">₪ </span>
                   {service.priceMin} – {service.priceMax}
                 </p>
                 {service.includesParts ? <p className="mt-0.5 text-xs text-[#525252]">يشمل قطع الغيار</p> : null}

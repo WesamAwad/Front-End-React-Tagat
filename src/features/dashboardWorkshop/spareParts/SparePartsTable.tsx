@@ -12,11 +12,7 @@ type SparePartsTableProps = {
 };
 
 function formatPrice(price: number) {
-  return new Intl.NumberFormat("ar-SA", {
-    style: "currency",
-    currency: "SAR",
-    maximumFractionDigits: 0,
-  }).format(price);
+  return `${price.toLocaleString("en-US", { maximumFractionDigits: 0 })} ₪`;
 }
 
 function quantityBadge(quantity: number) {

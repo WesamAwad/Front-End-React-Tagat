@@ -343,6 +343,20 @@ function WorkshopSignupPage() {
               {fieldErrors.notes ? <p className="mt-1.5 text-sm text-red-600">{fieldErrors.notes}</p> : null}
             </div>
 
+            <label className="flex items-start gap-2 text-sm text-primary">
+              <input name="terms" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-primary" />
+              <span>
+                بتسجيل الدخول، أنت توافق على{" "}
+                <Link to="/terms" className="font-semibold text-secondary hover:text-secondary-hover">
+                  شروط الاستخدام
+                </Link>{" "}
+                و{" "}
+                <Link to="/privacy" className="font-semibold text-secondary hover:text-secondary-hover">
+                  سياسة الخصوصية
+                </Link>
+              </span>
+            </label>
+
             <button type="submit" disabled={isLoading} className="w-full cursor-pointer rounded-lg bg-primary py-3 font-semibold text-white transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-70">
               {isLoading ? "جاري الإرسال..." : "ارسال"}
             </button>

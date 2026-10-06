@@ -11,7 +11,7 @@ export const mockWorkshops: Workshop[] = Array.from({ length: 8 }, (_, index) =>
   rating: 4.5,
   reviewCount: 89,
   location: "حي العليا، الرياض",
-  priceRange: "متوسط السعر 100 - 300 ر.س",
+  priceRange: "متوسط السعر 100 - 300 ₪",
   tags: ["ضمان 6 أشهر", "اندرويد", "تابلت"],
   image: images[index % images.length],
 }));

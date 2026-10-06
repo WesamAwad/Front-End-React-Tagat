@@ -242,11 +242,11 @@ function ClientSignupPage() {
               <input name="terms" type="checkbox" required className="mt-0.5 size-4 shrink-0 accent-primary" />
               <span>
                 بتسجيل الدخول، أنت توافق على{" "}
-                <Link to="#" className="font-semibold text-secondary hover:text-secondary-hover">
+                <Link to="/terms" className="font-semibold text-secondary hover:text-secondary-hover">
                   شروط الاستخدام
                 </Link>{" "}
                 و{" "}
-                <Link to="#" className="font-semibold text-secondary hover:text-secondary-hover">
+                <Link to="/privacy" className="font-semibold text-secondary hover:text-secondary-hover">
                   سياسة الخصوصية
                 </Link>
               </span>

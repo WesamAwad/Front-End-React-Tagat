@@ -67,7 +67,7 @@ export function WorkshopsResultsSection({ filters, mapSearchOpen, onToggleMapSea
     filters.service_id != null ? "خدمة محددة" : null,
     filters.product_name ? `قطعة: ${filters.product_name}` : null,
     filters.rating == null ? null : `تقييم ${filters.rating}+`,
-    filters.price != null ? `سعر ${filters.price} ر.س` : null,
+    filters.price != null ? `سعر ${filters.price} ₪` : null,
   ].filter(Boolean);
 
   if (isLoading) {

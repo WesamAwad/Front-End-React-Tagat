@@ -76,7 +76,7 @@ export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelP
             <p className="mt-0.5 text-xs text-[#999]">وقت الاستجابة</p>
           </div>
           <div className="px-1 text-center sm:border-e sm:border-[#f0f0f0] sm:px-2">
-            <p className="text-base font-bold text-[#222] sm:text-xl">{workshop.minPrice} ر.س</p>
+            <p className="text-base font-bold text-[#222] sm:text-xl">{workshop.minPrice} ₪</p>
             <p className="mt-0.5 text-xs text-[#999]">أدنى سعر</p>
           </div>
           <div className="px-1 text-center sm:border-e sm:border-[#f0f0f0] sm:px-2">

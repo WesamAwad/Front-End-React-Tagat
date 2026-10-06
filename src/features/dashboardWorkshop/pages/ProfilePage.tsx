@@ -81,10 +81,7 @@ function ProfilePage() {
   const [updateShopStatus, { isLoading: isUpdatingStatus }] = useUpdateShopStatusMutation();
   const shopId = profileData?.data?.id ?? "";
   const isShopOpen = (profileData?.data?.status ?? "open") === "open";
-  const profileLoadError =
-    profileError && typeof profileError === "object" && "data" in profileError
-      ? ((profileError.data as AuthValidationErrorResponse | undefined)?.message ?? "").trim()
-      : "";
+  const profileLoadError = profileError && typeof profileError === "object" && "data" in profileError ? ((profileError.data as AuthValidationErrorResponse | undefined)?.message ?? "").trim() : "";
 
   const applyCoverImage = (coverUrl: string | null) => {
     setCoverImageFile(null);

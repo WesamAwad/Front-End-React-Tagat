@@ -54,7 +54,7 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
   };
 
   return (
-    <article className="group overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md">
+    <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-gray-200 bg-white transition hover:shadow-md">
       <div className="relative h-40 overflow-hidden bg-primary-light/40">
         {shop.cover_image ? (
           <img
@@ -86,7 +86,7 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
@@ -139,21 +139,23 @@ export function WorkshopCard({ shop, isFavorite: isFavoriteInitially = false }: 
           </div>
         ) : null}
 
-        <hr className="border-gray-100" />
+        <div className="mt-auto flex flex-col gap-3">
+          <hr className="border-gray-100" />
 
-        <div className="flex gap-2">
-          <Link
-            to={`/workshops/booking?shop_id=${encodeURIComponent(shop.id)}&shop_name=${encodeURIComponent(shop.shop_name)}`}
-            className="flex flex-1 items-center justify-center rounded-md bg-primary py-2 text-sm font-bold text-white transition hover:bg-primary-hover"
-          >
-            إرسال طلب
-          </Link>
-          <Link
-            to={`/workshops/${shop.id}`}
-            className="flex flex-1 items-center justify-center rounded-md border border-primary py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
-          >
-            عرض التفاصيل
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              to={`/workshops/booking?shop_id=${encodeURIComponent(shop.id)}&shop_name=${encodeURIComponent(shop.shop_name)}`}
+              className="flex flex-1 items-center justify-center rounded-md bg-primary py-2 text-sm font-bold text-white transition hover:bg-primary-hover"
+            >
+              إرسال طلب
+            </Link>
+            <Link
+              to={`/workshops/${shop.id}`}
+              className="flex flex-1 items-center justify-center rounded-md border border-primary py-2 text-sm font-medium text-primary transition hover:bg-primary hover:text-white"
+            >
+              عرض التفاصيل
+            </Link>
+          </div>
         </div>
       </div>
     </article>

@@ -1,11 +1,13 @@
 import { Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "../../store/hooks";
 import joinImg from "../../assets/join-workshop.webp";
 
 const features = ["لوحة تحكم شاملة لإدارة الطلبات", "مدفوعات مضمونة ومحمية", "ظهور أمام آلاف العملاء", "تقارير وتحليلات متقدمة"];
 
 export function JoinWorkshopSection() {
   const navigate = useNavigate();
+  const isLoggedIn = useAppSelector((state) => Boolean(state.auth.token));
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="overflow-hidden rounded-2xl">
@@ -29,13 +31,15 @@ export function JoinWorkshopSection() {
               ))}
             </ul>
 
-            <button
-              type="button"
-              onClick={() => navigate("/signup/workshop")}
-              className="mt-8 cursor-pointer rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-white transition hover:bg-secondary-hover"
-            >
-              سجّل ورشتك الآن
-            </button>
+            {isLoggedIn ? null : (
+              <button
+                type="button"
+                onClick={() => navigate("/signup/workshop")}
+                className="mt-8 cursor-pointer rounded-md bg-secondary px-6 py-3 text-sm font-semibold text-white transition hover:bg-secondary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              >
+                سجّل ورشتك الآن
+              </button>
+            )}
           </div>
 
           {/* الصورة - يسار بـ RTL */}

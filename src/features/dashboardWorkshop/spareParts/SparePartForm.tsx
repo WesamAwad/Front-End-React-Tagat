@@ -259,7 +259,7 @@ export function SparePartForm({
 
           <div>
             <label htmlFor="spare-price" className="mb-2 block text-sm font-medium text-label">
-              السعر (ر.س)
+              السعر (₪)
             </label>
             <input id="spare-price" type="number" min="0" step="1" value={values.price} onChange={(event) => onChange("price", event.target.value)} placeholder="0" dir="ltr" className={`${inputClass} ${errors.price ? "border-red-500" : ""}`} />
             {errors.price ? <p className="mt-1.5 text-sm text-red-600">{errors.price}</p> : null}

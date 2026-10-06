@@ -6,6 +6,8 @@ import WorkshopsPage from "../features/workshops/WorkshopsPage";
 import DetailsWorkShop from "../features/workshops/workshopDetails/Details-WorkShop";
 import WorkshopBookingPage from "../features/workshopBooking/WorkshopBookingPage";
 import AboutPage from "../features/about/AboutPage";
+import TermsPage from "../features/legal/TermsPage";
+import PrivacyPage from "../features/legal/PrivacyPage";
 import ContactPage from "../features/contact/ContactPage";
 import FavoritesPage from "../features/favorites/FavoritesPage";
 import BookingsPage from "../features/booking/BookingsPage";
@@ -70,6 +72,14 @@ export const router = createBrowserRouter([
       {
         path: "about",
         element: <AboutPage />,
+      },
+      {
+        path: "terms",
+        element: <TermsPage />,
+      },
+      {
+        path: "privacy",
+        element: <PrivacyPage />,
       },
       {
         path: "contact",

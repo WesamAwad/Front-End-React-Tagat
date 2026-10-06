@@ -35,7 +35,7 @@ export function WorkshopSparePartsTab({ workshop }: WorkshopSparePartsTabProps) 
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
-            <p className="text-sm font-medium text-primary">{part.price} ر.س</p>
+            <p className="text-sm font-medium text-primary">{part.price} ₪</p>
             {part.isAvailable ? (
               <span className="rounded-full bg-[#10b981] px-2.5 py-1 text-[11px] font-semibold text-white">متوفر</span>
             ) : (

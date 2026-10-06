@@ -267,7 +267,7 @@ export function WorkshopsFiltersSidebar({ compact = false, showHeader = true, cl
           <form className="space-y-2" onSubmit={onPriceFormSubmit}>
             <div className="flex items-center justify-between gap-2">
               <label htmlFor="workshops-price" className="text-xs text-gray-500">
-                أدخل السعر (ر.س)
+                أدخل السعر (₪)
               </label>
               {filters.price != null || priceDraft.trim() !== "" ? (
                 <button type="button" onClick={clearPriceFilter} className="text-[11px] text-secondary hover:underline">

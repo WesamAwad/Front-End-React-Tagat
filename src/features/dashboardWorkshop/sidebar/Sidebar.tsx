@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardCheck, Boxes, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, LayoutDashboard, ListPlus, LogOut, MessageCircle, Settings, Shield, Star, Store, Package, UserRound, UserX, Wrench, X } from "lucide-react";
+import { ClipboardCheck, Boxes, Eye, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, LayoutDashboard, ListPlus, LogOut, MessageCircle, Settings, Shield, Star, Store, Package, UserRound, UserX, Wrench, X } from "lucide-react";
 import logo from "../../../assets/SwiftFix-Logo.svg";
 import { useAppSelector } from "../../../store/hooks";
 import { useGetAllComplaintsQuery, useGetAllRepairRequestsQuery, useGetShopOwnerVerificationDataQuery } from "../../auth/authApi";
@@ -51,18 +51,23 @@ function SidebarNav({
   pendingRepairs,
   pendingComplaints,
   liveVerificationId,
+  showWorkshopPage,
 }: {
   onNavigate?: () => void;
   pendingVerifications: number;
   pendingRepairs: number;
   pendingComplaints: number;
   liveVerificationId: string | number | null;
+  showWorkshopPage: boolean;
 }) {
   const location = useLocation();
+  const visibleNavItems = showWorkshopPage
+    ? [navItems[0], { to: "/workshop-owner/profile", label: "عرض صفحة الورشة", icon: Eye }, ...navItems.slice(1)]
+    : navItems;
 
   return (
     <nav className="space-y-1">
-      {navItems.map(({ to, label, icon: Icon, end, disabled, badgeKey }) => {
+      {visibleNavItems.map(({ to, label, icon: Icon, end, disabled, badgeKey }) => {
         const isRequestsItem = badgeKey === "pendingVerifications";
         const badgeCount = isRequestsItem ? pendingVerifications : 0;
         const showLiveId = isRequestsItem && liveVerificationId != null;
@@ -209,6 +214,7 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
           pendingRepairs={pendingRepairs}
           pendingComplaints={pendingComplaints}
           liveVerificationId={liveVerificationId}
+          showWorkshopPage={role === "shopOwner"}
         />
       </div>
 

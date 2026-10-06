@@ -72,7 +72,7 @@ export function mapPublicShopDetailsToWorkshopDetails(shop: PublicShopDetails): 
     rating: 0,
     reviewCount: 0,
     location,
-    priceRange: minPrice > 0 ? `${minPrice}+ ر.س` : "—",
+    priceRange: minPrice > 0 ? `${minPrice}+ ₪` : "—",
     tags: serviceNames,
     image: shop.cover_image || "",
     isOpen,

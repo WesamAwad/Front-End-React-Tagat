@@ -29,11 +29,7 @@ export function WorkshopsBrowseSection({ filters, onFiltersChange, mapSearchOpen
                 <SlidersHorizontal className="size-4 text-secondary" aria-hidden="true" />
                 تصفية النتائج
               </span>
-              {mobileFiltersOpen ? (
-                <ChevronUp className="size-4 text-gray-400" aria-hidden="true" />
-              ) : (
-                <ChevronDown className="size-4 text-gray-400" aria-hidden="true" />
-              )}
+              {mobileFiltersOpen ? <ChevronUp className="size-4 text-gray-400" aria-hidden="true" /> : <ChevronDown className="size-4 text-gray-400" aria-hidden="true" />}
             </button>
 
             {mobileFiltersOpen ? (
@@ -43,7 +39,7 @@ export function WorkshopsBrowseSection({ filters, onFiltersChange, mapSearchOpen
             ) : null}
           </div>
 
-          <div className="hidden lg:block lg:sticky lg:top-24">
+          <div className="hidden lg:block">
             <WorkshopsFiltersSidebar filters={filters} onFiltersChange={onFiltersChange} />
           </div>
         </div>

@@ -6,10 +6,7 @@ import facebookIcon from "../../assets/footer/facebook.svg";
 import linkedinIcon from "../../assets/footer/linkedin.svg";
 import xIcon from "../../assets/footer/x.svg";
 
-const companyLinks = [
-  { label: "من نحن", to: "/about" },
-  { label: "فريق العمل", to: "#" },
-];
+const companyLinks = [{ label: "من نحن", to: "/about" }];
 
 const servicesLinks = [
   { label: "إصلاح الهواتف", to: "/workshops" },
@@ -27,14 +24,13 @@ const workshopsLinks = [
 const contactLinks = [
   { label: "اتصل بنا", to: "/contact" },
 
-  { label: "سياسة الخصوصية", to: "#" },
-  { label: "الشروط والأحكام", to: "#" },
+  { label: "سياسة الخصوصية", to: "/privacy" },
+  { label: "الشروط والأحكام", to: "/terms" },
 ];
 
 const legalLinks = [
-  { label: "سياسة الخصوصية", to: "#" },
-  { label: "الشروط والأحكام", to: "#" },
-  { label: "ملفات تعريف الارتباط", to: "#" },
+  { label: "سياسة الخصوصية", to: "/privacy" },
+  { label: "الشروط والأحكام", to: "/terms" },
 ];
 
 const socialLinks = [

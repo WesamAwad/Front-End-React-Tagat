@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import ctaBgImg from "../../assets/cta-section-bg.webp";
 
 export function RepairCtaSection() {
@@ -13,12 +14,12 @@ export function RepairCtaSection() {
           <p className="mx-auto mt-3 max-w-3xl text-sm leading-relaxed text-white/90">أرسل طلبك الآن واستقبل عروضاً من أفضل الورش خلال ساعات. يمكنك إضافة رقم هاتفك لتواصل أسرع.</p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <button type="button" className="cursor-pointer rounded-md bg-secondary px-6 py-2.5 text-sm font-bold text-white transition hover:bg-secondary-hover">
+            <Link to="/workshops" className="rounded-md bg-secondary px-6 py-2.5 text-sm font-bold text-white transition hover:bg-secondary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
               أرسل طلب إصلاح
-            </button>
-            <button type="button" className="cursor-pointer rounded-md bg-white px-6 py-2.5 text-sm font-bold text-secondary transition hover:bg-gray-100">
+            </Link>
+            <Link to="/about" className="rounded-md bg-white px-6 py-2.5 text-sm font-bold text-secondary transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40">
               اعرف أكثر
-            </button>
+            </Link>
           </div>
         </div>
       </div>
