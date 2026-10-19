@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../../store/hooks";
 import { logout } from "../../auth/authSlice";
 import { useLogoutClientMutation } from "../../auth/authApi";
+import { hasPermission } from "../../auth/permissions";
 
 export function useWorkshopOwnerSession() {
   const dispatch = useAppDispatch();
@@ -11,6 +12,8 @@ export function useWorkshopOwnerSession() {
 
   const displayName = user ? `${user.first_name} ${user.last_name}`.trim() : "صاحب الورشة";
   const initials = user?.first_name?.[0] ?? "و";
+  // Users without access to the workshop profile get their account profile instead.
+  const profilePath = hasPermission(user?.permissions, "عرض ملف الورشة") ? "/workshop-owner/profile" : "/profile";
 
   const handleLogout = async () => {
     let logoutMessage = "";
@@ -28,5 +31,5 @@ export function useWorkshopOwnerSession() {
     }
   };
 
-  return { displayName, initials, handleLogout };
+  return { displayName, initials, profilePath, handleLogout };
 }

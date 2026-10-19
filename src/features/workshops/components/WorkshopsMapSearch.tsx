@@ -7,7 +7,7 @@ import "leaflet/dist/leaflet.css";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
-import { useGetAllServicesQuery, useGetProductsAllQuery, useLazySearchShopsMapQuery } from "../../auth/authApi";
+import { useGetAllServicesQuery, useGetProductsForSelectQuery, useLazySearchShopsMapQuery } from "../../auth/authApi";
 import type { AuthValidationErrorResponse, MapShopSearchProduct, MapShopSearchResult, Product, Service } from "../../../types/authTypes";
 
 const DEFAULT_LAT = 31.9539;
@@ -309,7 +309,7 @@ export function WorkshopsMapSearch() {
   const [hasSearched, setHasSearched] = useState(false);
 
   const { data: servicesData, isLoading: isServicesLoading, isError: isServicesError, isFetching: isServicesFetching } = useGetAllServicesQuery();
-  const { data: productsData, isLoading: isProductsLoading, isError: isProductsError, isFetching: isProductsFetching } = useGetProductsAllQuery();
+  const { data: productsData, isLoading: isProductsLoading, isError: isProductsError, isFetching: isProductsFetching } = useGetProductsForSelectQuery();
   const [triggerSearch, { data: shopsData, isFetching: isSearching, isError: isSearchError, error: searchError }] = useLazySearchShopsMapQuery();
 
   const services = servicesData?.data ?? EMPTY_SERVICES;

@@ -4,7 +4,7 @@ import { Bell, Check, CloudUpload, X } from "lucide-react";
 import heroBg from "../../assets/workshops-hero-bg.webp";
 import { SearchableSelect } from "../../components/SearchableSelect";
 import type { AuthValidationErrorResponse } from "../../types/authTypes";
-import { useGetAllServicesQuery, useGetDeviceModelsAllQuery, useStoreRepairRequestMutation } from "../auth/authApi";
+import { useGetAllServicesQuery, useGetDeviceModelsForSelectQuery, useStoreRepairRequestMutation } from "../auth/authApi";
 
 type BookingStep = 1 | 2 | 3;
 
@@ -40,7 +40,7 @@ function WorkshopBookingPage() {
   const [submitError, setSubmitError] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const { data: deviceModelsData, isLoading: isDeviceModelsLoading, isFetching: isDeviceModelsFetching, isError: isDeviceModelsError } = useGetDeviceModelsAllQuery();
+  const { data: deviceModelsData, isLoading: isDeviceModelsLoading, isFetching: isDeviceModelsFetching, isError: isDeviceModelsError } = useGetDeviceModelsForSelectQuery();
   const { data: servicesData, isLoading: isServicesLoading, isFetching: isServicesFetching, isError: isServicesError } = useGetAllServicesQuery();
   const [storeRepairRequest, { isLoading: isSubmitting }] = useStoreRepairRequestMutation();
 

@@ -28,6 +28,7 @@ export interface ClientLoginResponse {
   };
   role?: string | string[] | { name?: string }[];
   roles?: string[] | { name?: string }[];
+  permissions?: string[];
   token: string;
 }
 
@@ -421,6 +422,7 @@ export interface PublicShopDetails {
   whatsapp: string;
   email: string;
   website: string;
+  completed_repair_requests_count: number;
   services: PublicShopDetailsService[];
   products: PublicShopDetailsProduct[];
   features: PublicShopDetailsFeature[];
@@ -636,6 +638,15 @@ export interface ShopReview {
   replied_at: string | null;
   created_at: string;
   user: ReviewUser;
+}
+
+export interface AdminShopReview extends ShopReview {
+  shop_id: string;
+  shop_name: string;
+}
+
+export interface GetAdminReviewsResponse {
+  reviews: AdminShopReview[];
 }
 
 export interface ShopReviewsRatingDistribution {

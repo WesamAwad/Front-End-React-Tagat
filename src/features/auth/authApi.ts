@@ -94,6 +94,8 @@ import type {
   UpdateShopFeatureRequest,
   ShopFeatureMutationResponse,
   ShopReview,
+  AdminShopReview,
+  GetAdminReviewsResponse,
   ReviewUser,
   GetShopReviewsResponse,
   GetShopOwnerReviewsResponse,
@@ -504,6 +506,10 @@ function normalizePublicShopDetails(payload: unknown, shopId?: string | number):
     whatsapp: String(raw.whatsapp ?? raw.whatsapp_number ?? raw.phone ?? raw.phone_number ?? "").trim(),
     email: String(raw.email ?? raw.shop_email ?? "").trim(),
     website: String(raw.website ?? raw.website_url ?? raw.site ?? "").trim(),
+    completed_repair_requests_count: (() => {
+      const count = Number(raw.completed_repair_requests_count ?? raw.completed_repairs_count ?? raw.completedRepairsCount ?? 0);
+      return Number.isFinite(count) && count >= 0 ? count : 0;
+    })(),
     services: normalizePublicShopDetailsServices(raw.services ?? raw.service_list),
     products: normalizePublicShopDetailsProducts(extractPublicShopDetailsProductsSource(raw)),
     features: normalizePublicShopDetailsFeatures(raw.featuresShop ?? raw.features_shop ?? raw.features),
@@ -1049,8 +1055,9 @@ function normalizeDeviceModels(payload: unknown): GetAllDeviceModelsResponse {
         if (!name) return null;
 
         const brandObj = row.brand && typeof row.brand === "object" ? (row.brand as Record<string, unknown>) : null;
+        const brandAsString = typeof row.brand === "string" ? row.brand.trim() : "";
         const brand_id = (row.brand_id ?? brandObj?.id ?? null) as number | string | null;
-        const brandNameRaw = row.brand_name ?? brandObj?.name ?? brandObj?.brand_name ?? brandObj?.name_ar ?? null;
+        const brandNameRaw = row.brand_name ?? brandObj?.name ?? brandObj?.brand_name ?? brandObj?.name_ar ?? brandAsString ?? null;
         const brand_name = brandNameRaw == null || brandNameRaw === "" ? null : String(brandNameRaw);
 
         return {
@@ -1077,7 +1084,7 @@ function extractBrandDevicesFromPayload(payload: unknown): BrandDevice[] {
   if (!payload || typeof payload !== "object") return [];
 
   const body = payload as Record<string, unknown>;
-  const deviceSources = [body.deviceModels, body.devices, body.device_list, body.models, body.products];
+  const deviceSources = [body.device_models, body.deviceModels, body.devices, body.device_list, body.models, body.products];
 
   for (const source of deviceSources) {
     const devices = normalizeBrandDevices(source);
@@ -1668,11 +1675,12 @@ function normalizeShopReview(item: unknown): ShopReview | null {
   if (!item || typeof item !== "object") return null;
 
   const row = item as Record<string, unknown>;
-  const id = String(row.id ?? "").trim();
+  const id = String(row.id ?? row.review_id ?? "").trim();
   if (!id) return null;
 
   const ratingRaw = Number(row.rating ?? 0);
   const rating = Number.isFinite(ratingRaw) ? Math.min(5, Math.max(0, ratingRaw)) : 0;
+  const userName = String(row.user_name ?? row.userName ?? "").trim();
 
   return {
     id,
@@ -1681,7 +1689,7 @@ function normalizeShopReview(item: unknown): ShopReview | null {
     shop_reply: row.shop_reply == null || row.shop_reply === "" ? null : String(row.shop_reply),
     replied_at: row.replied_at == null || row.replied_at === "" ? null : String(row.replied_at),
     created_at: String(row.created_at ?? row.createdAt ?? row.date ?? "").trim(),
-    user: normalizeReviewUser(row.user ?? row.customer ?? row.author),
+    user: userName ? { id: String(row.user_id ?? "").trim(), name: userName } : normalizeReviewUser(row.user ?? row.customer ?? row.author),
   };
 }
 
@@ -1998,6 +2006,39 @@ function normalizeRatingDistribution(value: unknown): ShopReviewsRatingDistribut
   };
 }
 
+function readShopLabel(row: Record<string, unknown>) {
+  const nested = row.shop && typeof row.shop === "object" ? (row.shop as Record<string, unknown>) : null;
+  const name = String(row.shop_name ?? row.name ?? nested?.shop_name ?? nested?.name ?? "").trim();
+  const id = String(row.id ?? row.shop_id ?? nested?.id ?? nested?.shop_id ?? "").trim();
+  return { id, name };
+}
+
+function normalizeAdminReviewsResponse(payload: unknown): GetAdminReviewsResponse {
+  const body = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+  const shops = Array.isArray(body.shops) ? body.shops : Array.isArray(body.data) ? body.data : [];
+  const reviews: AdminShopReview[] = [];
+
+  shops.forEach((shop) => {
+    if (!shop || typeof shop !== "object") return;
+    const row = shop as Record<string, unknown>;
+    const { id: shopId, name: shopName } = readShopLabel(row);
+    const reviewsRaw = row.reviews;
+    const list = Array.isArray(reviewsRaw)
+      ? reviewsRaw
+      : reviewsRaw && typeof reviewsRaw === "object" && Array.isArray((reviewsRaw as { data?: unknown }).data)
+        ? ((reviewsRaw as { data: unknown[] }).data)
+        : [];
+
+    list.forEach((item) => {
+      const review = normalizeShopReview(item);
+      if (!review) return;
+      reviews.push({ ...review, shop_id: shopId, shop_name: shopName });
+    });
+  });
+
+  return { reviews };
+}
+
 function normalizeShopReviewsResponse(payload: unknown): GetShopReviewsResponse {
   const body = (payload && typeof payload === "object" ? payload : {}) as Record<string, unknown>;
   const list = Array.isArray(body.reviews) ? body.reviews : Array.isArray(body.data) ? body.data : [];
@@ -2136,6 +2177,7 @@ export const baseApi = createApi({
     "ShopFeatures",
     "ShopReviews",
     "ShopOwnerReviews",
+    "AdminReviews",
     "RepairRequests",
     "Notifications",
     "ContactMessages",
@@ -2450,6 +2492,15 @@ export const baseApi = createApi({
       providesTags: ["Products"],
     }),
 
+    getProductsForSelect: build.query<GetAllProductsResponse, void>({
+      query: () => ({
+        url: "/products/for-select",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeProducts(response),
+      providesTags: ["Products"],
+    }),
+
     updateProduct: build.mutation<{ message?: string }, { id: string | number; product_name: string; category_id: string | number }>({
       query: ({ id, product_name, category_id }) => ({
         url: `/products/update/${id}`,
@@ -2533,8 +2584,18 @@ export const baseApi = createApi({
 
     getDeviceModelsAll: build.query<GetAllDeviceModelsResponse, void>({
       query: () => ({
+        url: "/device-models/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeDeviceModels(response),
+      providesTags: ["DeviceModels"],
+    }),
+
+    getDeviceModelsForSelect: build.query<GetAllDeviceModelsResponse, string | number | void>({
+      query: (brandId) => ({
         url: "/device-models/for-select",
         method: "GET",
+        ...(brandId != null && brandId !== "" ? { params: { brand_id: brandId } } : {}),
       }),
       transformResponse: (response: unknown) => normalizeDeviceModels(response),
       providesTags: ["DeviceModels"],
@@ -2576,6 +2637,15 @@ export const baseApi = createApi({
     getCitiesAll: build.query<GetAllCitiesResponse, void>({
       query: () => ({
         url: "/cities/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeCities(response),
+      providesTags: ["Cities"],
+    }),
+
+    getCitiesForSelect: build.query<GetAllCitiesResponse, void>({
+      query: () => ({
+        url: "/cities/get-for-select",
         method: "GET",
       }),
       transformResponse: (response: unknown) => normalizeCities(response),
@@ -3147,12 +3217,25 @@ export const baseApi = createApi({
       invalidatesTags: ["ShopOwnerReviews", "ShopReviews"],
     }),
 
+    getAdminReviews: build.query<GetAdminReviewsResponse, void>({
+      query: () => ({
+        url: "/admin/reviews/get-all",
+        method: "GET",
+      }),
+      transformResponse: (response: unknown) => normalizeAdminReviewsResponse(response),
+      providesTags: ["AdminReviews"],
+    }),
+
     deleteAdminReview: build.mutation<ReviewMutationResponse, { id: string | number; shopId?: string | number }>({
       query: ({ id }) => ({
         url: `/admin/reviews/delete/${id}`,
         method: "PUT",
       }),
-      invalidatesTags: (_result, _error, arg) => ["ShopOwnerReviews", ...(arg.shopId != null ? [{ type: "ShopReviews" as const, id: String(arg.shopId) }] : ["ShopReviews" as const])],
+      invalidatesTags: (_result, _error, arg) => [
+        "AdminReviews",
+        "ShopOwnerReviews",
+        ...(arg.shopId != null ? [{ type: "ShopReviews" as const, id: String(arg.shopId) }] : ["ShopReviews" as const]),
+      ],
     }),
 
     getAllRoles: build.query<GetAllRolesResponse, void>({
@@ -3292,6 +3375,7 @@ export const {
   useDeleteCountryMutation,
   useGetAllCitiesQuery,
   useGetCitiesAllQuery,
+  useGetCitiesForSelectQuery,
   useStoreCityMutation,
   useUpdateCityMutation,
   useDeleteCityMutation,
@@ -3307,6 +3391,7 @@ export const {
   useDeleteCategoryMutation,
   useStoreProductMutation,
   useGetProductsAllQuery,
+  useGetProductsForSelectQuery,
   useUpdateProductMutation,
   useDeleteProductMutation,
   useGetBrandsForSelectQuery,
@@ -3317,6 +3402,7 @@ export const {
   useDeleteBrandMutation,
   useStoreDeviceModelMutation,
   useGetDeviceModelsAllQuery,
+  useGetDeviceModelsForSelectQuery,
   useUpdateDeviceModelMutation,
   useDeleteDeviceModelMutation,
   useGetCategoryByIdQuery,
@@ -3368,6 +3454,7 @@ export const {
   useDeleteReviewMutation,
   useGetShopOwnerReviewsQuery,
   useReplyShopOwnerReviewMutation,
+  useGetAdminReviewsQuery,
   useDeleteAdminReviewMutation,
   useGetAllRolesQuery,
   useGetRolesForSelectQuery,

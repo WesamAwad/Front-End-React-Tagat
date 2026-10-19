@@ -294,9 +294,6 @@ function ProductsPage() {
                     تاريخ الإنشاء
                   </th>
                   <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-6">
-                    آخر تحديث
-                  </th>
-                  <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-6">
                     الإجراءات
                   </th>
                 </tr>
@@ -312,7 +309,6 @@ function ProductsPage() {
                     </td>
                     <td className="whitespace-nowrap px-4 py-4 text-center text-gray-600 sm:px-6">{resolveCategoryName(product)}</td>
                     <td className="whitespace-nowrap px-4 py-4 text-center text-gray-600 sm:px-6">{formatProductDate(product.created_at)}</td>
-                    <td className="whitespace-nowrap px-4 py-4 text-center text-gray-600 sm:px-6">{formatProductDate(product.updated_at)}</td>
                     <td className="whitespace-nowrap px-4 py-4 text-center sm:px-6">
                       <div className="flex flex-nowrap items-center justify-center gap-2">
                         <button

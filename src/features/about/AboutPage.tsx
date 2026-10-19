@@ -7,11 +7,13 @@ import curveOrangeLarge from "../../assets/about/curve-orange-large.svg";
 import curveOrangeSmall from "../../assets/about/curve-orange-small.svg";
 import curveGray from "../../assets/about/curve-gray.svg";
 import chevronDownIcon from "../../assets/about/chevron-down.svg";
+import { useGetPlatformStatisticsQuery } from "../auth/authApi";
 
-const STATS = [
-  { id: "workshops", value: "500+", label: "ورشة موثّقة", caption: "في 5 مدن رئيسية" },
-  { id: "repairs", value: "48,200+", label: "إصلاح مكتمل", caption: "بنجاح ورضا العميل" },
-];
+function formatAboutStat(value: number | undefined, isLoading: boolean) {
+  if (isLoading) return "…";
+  if (value == null || !Number.isFinite(value)) return "0+";
+  return `${Math.trunc(value).toLocaleString("en-US")}+`;
+}
 
 const VALUES = [
   { id: "transparency", icon: "⚖️", title: "الشفافية", description: "أسعار معلنة، تقييمات حقيقية، لا مفاجآت" },
@@ -48,6 +50,22 @@ const FAQS = [
 
 function AboutPage() {
   const [openFaqId, setOpenFaqId] = useState<string | null>(FAQS[0].id);
+  const { data: stats, isLoading: isStatsLoading } = useGetPlatformStatisticsQuery();
+
+  const aboutStats = [
+    {
+      id: "workshops",
+      value: formatAboutStat(stats?.verified_shops_count, isStatsLoading),
+      label: "ورشة موثّقة",
+      caption: "في 5 مدن رئيسية",
+    },
+    {
+      id: "repairs",
+      value: formatAboutStat(stats?.completed_requests_count, isStatsLoading),
+      label: "إصلاح مكتمل",
+      caption: "بنجاح ورضا العميل",
+    },
+  ];
 
   useEffect(() => {
     document.title = "من نحن | SwiftFix";
@@ -128,8 +146,8 @@ function AboutPage() {
               <img src={teamImg} alt="فريق عمل سويفت فيكس" className="absolute top-[-51.54%] left-0 h-[165.62%] w-full max-w-none" />
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              {STATS.map((stat) => (
+            <div className="mt-3 grid grid-cols-2 gap-3" aria-busy={isStatsLoading}>
+              {aboutStats.map((stat) => (
                 <div key={stat.id} className="flex flex-col gap-0.5 rounded border-[0.8px] border-secondary bg-[#fff2e9] p-4">
                   {/* ltr حتى تظهر "+" بعد الرقم كما في التصميم (500+) */}
                   <p dir="ltr" className="text-right text-2xl font-bold leading-normal text-secondary">

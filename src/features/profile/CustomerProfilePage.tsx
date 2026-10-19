@@ -40,6 +40,7 @@ function CustomerProfilePage() {
   const profile = profileData?.data ?? null;
   const isProfilePending = isProfileLoading || (isProfileFetching && !profile);
   const fullName = `${profile?.first_name ?? user?.first_name ?? ""} ${profile?.last_name ?? user?.last_name ?? ""}`.trim();
+  const canDeleteAccount = user?.role !== "admin";
 
   const closeDeleteDialog = () => {
     setIsDeleteDialogOpen(false);
@@ -98,12 +99,14 @@ function CustomerProfilePage() {
             <ChangePasswordForm onSaved={(message) => setToast({ title: "تم تغيير كلمة المرور", message })} />
           </ProfileSection>
 
-          <AccountInfoSection onDeleteClick={() => setIsDeleteDialogOpen(true)} />
+          {canDeleteAccount ? <AccountInfoSection onDeleteClick={() => setIsDeleteDialogOpen(true)} /> : null}
         </div>
       </div>
 
-      {isDeleteDialogOpen ? <DeleteAccountDialog isLoading={isDeletingAccount} error={deleteError} onConfirm={handleDeleteAccount} onClose={closeDeleteDialog} /> : null}
-      {isAccountDeleted ? <AccountDeletedDialog onLeave={leaveDeletedAccount} /> : null}
+      {canDeleteAccount && isDeleteDialogOpen ? (
+        <DeleteAccountDialog isLoading={isDeletingAccount} error={deleteError} onConfirm={handleDeleteAccount} onClose={closeDeleteDialog} />
+      ) : null}
+      {canDeleteAccount && isAccountDeleted ? <AccountDeletedDialog onLeave={leaveDeletedAccount} /> : null}
 
       <SuccessToast open={toast !== null} title={toast?.title} message={toast?.message ?? ""} onClose={() => setToast(null)} />
     </div>

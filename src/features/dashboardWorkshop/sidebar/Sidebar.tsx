@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import { ClipboardCheck, Boxes, Eye, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, LayoutDashboard, ListPlus, LogOut, MessageCircle, Settings, Shield, Star, Store, Package, UserRound, UserX, Wrench, X } from "lucide-react";
+import { ClipboardCheck, Boxes, Eye, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, LayoutDashboard, ListPlus, MessageCircle, Shield, Star, Store, Package, UserRound, UserX, Wrench, X } from "lucide-react";
 import logo from "../../../assets/SwiftFix-Logo.svg";
 import { useAppSelector } from "../../../store/hooks";
 import { useGetAllComplaintsQuery, useGetAllRepairRequestsQuery, useGetShopOwnerVerificationDataQuery } from "../../auth/authApi";
+import { getPostLoginPath } from "../../auth/authRoles";
+import { hasPermission, type AppPermission } from "../../auth/permissions";
 import { SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, type ShopRepairRequestCreatedDetail } from "../../../services/listenShopRepairRequests";
 import { NEW_SHOP_OWNER_VERIFICATION_DOM_EVENT, type NewShopOwnerVerificationDomDetail } from "../../../services/listenNewShopOwnerVerification";
 
@@ -16,29 +18,30 @@ type NavItem = {
   disabled?: boolean;
   /** Show pending count badge (e.g. registration requests). */
   badgeKey?: "pendingVerifications" | "pendingRepairs" | "pendingComplaints";
+  /** Backend permission the user needs for this item to be shown. */
+  permission?: AppPermission;
 };
 
 const navItems: NavItem[] = [
-  { to: "/workshop-owner", label: "لوحة التحكم", icon: LayoutDashboard, end: true },
-  { to: "/workshop-owner/orders", label: "طلبات الاصلاح", icon: ClipboardList, badgeKey: "pendingRepairs" },
-  { to: "/workshop-owner/reviews", label: "التقييمات", icon: Star },
-  { to: "/workshop-owner/spare-parts", label: "قطع الغيار", icon: Package },
-  { to: "/workshop-owner/specs", label: "إضافة المواصفات", icon: ListPlus },
-  { to: "/admin/contact-messages", label: "تواصل معنا", icon: MessageCircle },
-  { to: "/admin/complaints", label: "شكاوى الورش", icon: Flag, badgeKey: "pendingComplaints" },
-  { to: "/admin/reviews", label: "إدارة التقييمات", icon: Star },
-  { to: "/admin/countries", label: "الدول", icon: Globe },
-  { to: "/admin/cities", label: "المدن", icon: MapPin },
-  { to: "/admin/companies", label: "الشركات", icon: Building2 },
-  { to: "/admin/devices", label: "الأجهزة", icon: Smartphone },
-  { to: "/admin/services", label: "إضافة الخدمات", icon: Wrench },
-  { to: "/admin/roles", label: "الأدوار والصلاحيات", icon: Shield },
-  { to: "/admin/deletion-reasons", label: "أسباب حذف الحساب", icon: UserX },
-  { to: "/admin/categories", label: "الفئات", icon: Tags },
-  { to: "/admin/products", label: "المنتجات", icon: Boxes },
-  { to: "/admin/workshops", label: "الورش", icon: Store },
-  { to: "/admin/workshop-owner-requests", label: "طلبات التسجيل", icon: ClipboardCheck, badgeKey: "pendingVerifications" },
-  { to: "/workshop-owner/settings", label: "إعدادات الورشة", icon: Settings },
+  { to: "/workshop-owner/profile", label: "عرض صفحة الورشة", icon: Eye, permission: "عرض ملف الورشة" },
+  { to: "/workshop-owner/orders", label: "طلبات الاصلاح", icon: ClipboardList, badgeKey: "pendingRepairs", permission: "عرض طلبات الصيانة" },
+  { to: "/workshop-owner/reviews", label: "التقييمات", icon: Star, permission: "عرض تقييمات الورشة" },
+  { to: "/workshop-owner/spare-parts", label: "قطع الغيار", icon: Package, permission: "عرض منتجات الورشة" },
+  { to: "/workshop-owner/specs", label: "إضافة المواصفات", icon: ListPlus, permission: "عرض ميزات المتجر" },
+  { to: "/admin/contact-messages", label: "تواصل معنا", icon: MessageCircle, permission: "عرض رسائل التواصل" },
+  { to: "/admin/complaints", label: "شكاوى الورش", icon: Flag, badgeKey: "pendingComplaints", permission: "عرض الشكاوى" },
+  { to: "/admin/reviews", label: "إدارة التقييمات", icon: Star, permission: "عرض تقييمات جميع الورش" },
+  { to: "/admin/countries", label: "الدول", icon: Globe, permission: "عرض الدول" },
+  { to: "/admin/cities", label: "المدن", icon: MapPin, permission: "عرض المدن" },
+  { to: "/admin/companies", label: "الشركات", icon: Building2, permission: "عرض العلامات التجارية" },
+  { to: "/admin/devices", label: "الأجهزة", icon: Smartphone, permission: "عرض الأجهزة" },
+  { to: "/admin/services", label: "إضافة الخدمات", icon: Wrench, permission: "عرض الخدمات" },
+  { to: "/admin/roles", label: "الأدوار والصلاحيات", icon: Shield, permission: "عرض الأدوار" },
+  { to: "/admin/deletion-reasons", label: "أسباب حذف الحساب", icon: UserX, permission: "تفعيل وإلغاء تفعيل أسباب حذف الحساب" },
+  { to: "/admin/categories", label: "الفئات", icon: Tags, permission: "عرض الفئات" },
+  { to: "/admin/products", label: "المنتجات", icon: Boxes, permission: "عرض المنتجات" },
+  { to: "/admin/workshops", label: "الورش", icon: Store, permission: "عرض أصحاب الورش" },
+  { to: "/admin/workshop-owner-requests", label: "طلبات التسجيل", icon: ClipboardCheck, badgeKey: "pendingVerifications", permission: "عرض طلبات تحقق أصحاب الورش" },
 ];
 
 const sidebarLinkClass = ({ isActive }: { isActive: boolean }) => `flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition ${isActive ? "bg-secondary text-white" : "text-white/75 hover:bg-primary-hover hover:text-white"}`;
@@ -46,28 +49,25 @@ const sidebarLinkClass = ({ isActive }: { isActive: boolean }) => `flex items-ce
 const badgeClassName = "ms-auto inline-flex min-w-5 items-center justify-center rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-bold leading-none text-white";
 
 function SidebarNav({
+  items,
   onNavigate,
   pendingVerifications,
   pendingRepairs,
   pendingComplaints,
   liveVerificationId,
-  showWorkshopPage,
 }: {
+  items: NavItem[];
   onNavigate?: () => void;
   pendingVerifications: number;
   pendingRepairs: number;
   pendingComplaints: number;
   liveVerificationId: string | number | null;
-  showWorkshopPage: boolean;
 }) {
   const location = useLocation();
-  const visibleNavItems = showWorkshopPage
-    ? [navItems[0], { to: "/workshop-owner/profile", label: "عرض صفحة الورشة", icon: Eye }, ...navItems.slice(1)]
-    : navItems;
 
   return (
     <nav className="space-y-1">
-      {visibleNavItems.map(({ to, label, icon: Icon, end, disabled, badgeKey }) => {
+      {items.map(({ to, label, icon: Icon, end, disabled, badgeKey }) => {
         const isRequestsItem = badgeKey === "pendingVerifications";
         const badgeCount = isRequestsItem ? pendingVerifications : 0;
         const showLiveId = isRequestsItem && liveVerificationId != null;
@@ -124,15 +124,20 @@ type SidebarProps = {
   isOpen: boolean;
   displayName: string;
   initials: string;
+  profilePath: string;
   onClose: () => void;
-  onLogout: () => void;
 };
 
-export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: SidebarProps) {
+export function Sidebar({ isOpen, displayName, initials, profilePath, onClose }: SidebarProps) {
   const role = useAppSelector((state) => state.auth.user?.role);
-  const { data } = useGetShopOwnerVerificationDataQuery();
-  const { data: repairRequests } = useGetAllRepairRequestsQuery(undefined, { skip: role !== "shopOwner" });
-  const { data: complaintsData } = useGetAllComplaintsQuery(undefined, { skip: role !== "admin" });
+  const permissions = useAppSelector((state) => state.auth.user?.permissions);
+  const homePath = getPostLoginPath(role);
+  const permittedNavItems = navItems.filter((item) => !item.permission || hasPermission(permissions, item.permission));
+  // Badge counts load only when the item showing them is visible, so no request is sent without the permission.
+  const showsBadge = (badgeKey: NonNullable<NavItem["badgeKey"]>) => permittedNavItems.some((item) => item.badgeKey === badgeKey);
+  const { data } = useGetShopOwnerVerificationDataQuery(undefined, { skip: !showsBadge("pendingVerifications") });
+  const { data: repairRequests } = useGetAllRepairRequestsQuery(undefined, { skip: !showsBadge("pendingRepairs") });
+  const { data: complaintsData } = useGetAllComplaintsQuery(undefined, { skip: !showsBadge("pendingComplaints") });
   const pendingVerifications = (data?.data ?? []).filter((request) => request.status === "pending").length;
   const loadedRequests = repairRequests?.data ?? [];
   const pendingRepairIds = loadedRequests.filter((request) => request.status.trim().toLowerCase() === "pending").map((request) => request.id);
@@ -174,11 +179,6 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
     return () => window.clearTimeout(timeoutId);
   }, [liveVerificationId]);
 
-  const handleLogout = () => {
-    onClose();
-    onLogout();
-  };
-
   return (
     <aside
       className={`fixed inset-y-0 inset-s-0 z-1600 flex w-72 flex-col bg-primary text-white shadow-xl transition-transform duration-300 lg:static lg:z-auto lg:w-64 lg:translate-x-0 lg:shadow-none ${
@@ -186,7 +186,7 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
       }`}
     >
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-5">
-        <Link to="/workshop-owner" className="flex items-center gap-3" onClick={onClose}>
+        <Link to={homePath} className="flex items-center gap-3" onClick={onClose}>
           <img src={logo} alt="SwiftFix" className="h-9 w-auto brightness-0 invert" />
         </Link>
         <button type="button" aria-label="إغلاق القائمة" className="rounded-lg p-1.5 text-white/70 transition hover:bg-primary-hover hover:text-white lg:hidden" onClick={onClose}>
@@ -195,13 +195,13 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
       </div>
 
       <div className="border-b border-white/10 px-4 py-4">
-        <Link to="/workshop-owner/profile" onClick={onClose} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3 transition hover:bg-white/10">
+        <Link to={profilePath} onClick={onClose} className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-3 transition hover:bg-white/10">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-white">{initials}</div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{displayName}</p>
             <p className="flex items-center gap-1 text-xs text-white/60">
               <Store className="size-3.5 shrink-0" aria-hidden="true" />
-              لوحة صاحب الورشة
+              {role === "admin" ? "لوحة تحكم الأدمن" : "لوحة صاحب الورشة"}
             </p>
           </div>
         </Link>
@@ -209,12 +209,12 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <SidebarNav
+          items={[{ to: homePath, label: "لوحة التحكم", icon: LayoutDashboard, end: true }, ...permittedNavItems]}
           onNavigate={onClose}
           pendingVerifications={pendingVerifications}
           pendingRepairs={pendingRepairs}
           pendingComplaints={pendingComplaints}
           liveVerificationId={liveVerificationId}
-          showWorkshopPage={role === "shopOwner"}
         />
       </div>
 
@@ -227,10 +227,6 @@ export function Sidebar({ isOpen, displayName, initials, onClose, onLogout }: Si
           <Home className="size-5 shrink-0" aria-hidden="true" />
           <span>العودة للموقع</span>
         </Link>
-        <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-white/75 transition hover:bg-primary-hover hover:text-white">
-          <LogOut className="size-5 shrink-0" aria-hidden="true" />
-          <span>تسجيل الخروج</span>
-        </button>
       </div>
     </aside>
   );

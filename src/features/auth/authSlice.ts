@@ -6,6 +6,8 @@ export interface AuthUser {
   first_name: string;
   last_name: string;
   role?: AppUserRole;
+  /** Permission names from the login response; sessions saved before this field existed have none until the next login. */
+  permissions?: string[];
 }
 
 interface AuthState {

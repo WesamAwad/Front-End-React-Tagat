@@ -1,13 +1,9 @@
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Eye, Trash2, X } from "lucide-react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import SuccessToast from "../../../components/SuccessToast";
-import type { AuthValidationErrorResponse, ShopReview } from "../../../types/authTypes";
-import {
-  useDeleteAdminReviewMutation,
-  useGetAdminShopOwnersAllQuery,
-  useGetShopReviewsQuery,
-} from "../../auth/authApi";
+import type { AdminShopReview, AuthValidationErrorResponse } from "../../../types/authTypes";
+import { useDeleteAdminReviewMutation, useGetAdminReviewsQuery } from "../../auth/authApi";
 import { StarRating } from "../../workshops/components/StarRating";
 
 function formatReviewDate(value: string) {
@@ -47,7 +43,7 @@ function ReviewDetailsDialog({
   onClose,
   onDelete,
 }: {
-  review: ShopReview | null;
+  review: AdminShopReview | null;
   shopName: string;
   open: boolean;
   onClose: () => void;
@@ -119,25 +115,7 @@ function ReviewDetailsDialog({
 }
 
 function AdminReviewsPage() {
-  const { data: shopsData, isLoading: shopsLoading } = useGetAdminShopOwnersAllQuery();
-  const shops = useMemo(() => {
-    return (shopsData?.data ?? [])
-      .map((owner) => {
-        const raw = owner.raw;
-        const shopId = String(raw.shop_id ?? raw.shopId ?? owner.id);
-        const name = String(raw.shop_name ?? raw.name ?? raw.full_name ?? `ورشة #${shopId}`).trim();
-        return { id: shopId, name: name || `ورشة #${shopId}` };
-      })
-      .filter((item, index, list) => item.id && list.findIndex((entry) => entry.id === item.id) === index);
-  }, [shopsData]);
-
-  const [selectedShopId, setSelectedShopId] = useState("");
-  const activeShopId = selectedShopId || shops[0]?.id || "";
-  const activeShopName = shops.find((shop) => shop.id === activeShopId)?.name ?? "الورشة المحددة";
-
-  const { data, isLoading, isError, error, isFetching } = useGetShopReviewsQuery(activeShopId, {
-    skip: !activeShopId,
-  });
+  const { data, isLoading, isError, error, isFetching } = useGetAdminReviewsQuery();
   const [deleteAdminReview, { isLoading: isDeleting }] = useDeleteAdminReviewMutation();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -147,6 +125,7 @@ function AdminReviewsPage() {
 
   const reviews = data?.reviews ?? [];
   const selectedReview = reviews.find((item) => item.id === selectedId) ?? null;
+  const deleteTarget = reviews.find((item) => item.id === deleteId) ?? null;
 
   const requestDelete = (id: string) => {
     setDeleteError("");
@@ -154,10 +133,10 @@ function AdminReviewsPage() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteId || !activeShopId) return;
+    if (!deleteId) return;
     setDeleteError("");
     try {
-      await deleteAdminReview({ id: deleteId, shopId: activeShopId }).unwrap();
+      await deleteAdminReview({ id: deleteId, shopId: deleteTarget?.shop_id || undefined }).unwrap();
       if (selectedId === deleteId) setSelectedId(null);
       setDeleteId(null);
       setSuccessOpen(true);
@@ -177,35 +156,12 @@ function AdminReviewsPage() {
           </div>
           <div className="rounded-lg border border-primary/10 bg-primary-light/50 px-4 py-2 text-center">
             <p className="text-xs text-gray-500">إجمالي التعليقات</p>
-            <p className="text-lg font-bold text-primary">{data?.reviews_count ?? 0}</p>
+            <p className="text-lg font-bold text-primary">{reviews.length}</p>
           </div>
-        </div>
-
-        <div className="mt-4 max-w-md">
-          <label htmlFor="admin-reviews-shop" className="mb-1.5 block text-sm font-medium text-primary">
-            اختر الورشة
-          </label>
-          <select
-            id="admin-reviews-shop"
-            value={activeShopId}
-            onChange={(event) => {
-              setSelectedShopId(event.target.value);
-              setSelectedId(null);
-            }}
-            disabled={shopsLoading || shops.length === 0}
-            className="w-full rounded-lg border border-primary/15 bg-white px-3 py-2.5 text-sm text-gray-800 outline-none transition focus:border-secondary focus:ring-2 focus:ring-secondary/20"
-          >
-            {shops.length === 0 ? <option value="">لا توجد ورش</option> : null}
-            {shops.map((shop) => (
-              <option key={shop.id} value={shop.id}>
-                {shop.name}
-              </option>
-            ))}
-          </select>
         </div>
       </section>
 
-      {shopsLoading || isLoading || isFetching ? (
+      {isLoading || isFetching ? (
         <p className="text-sm text-gray-500" role="status">
           جاري تحميل التعليقات...
         </p>
@@ -213,13 +169,13 @@ function AdminReviewsPage() {
 
       {isError ? (
         <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-          {(error as { data?: AuthValidationErrorResponse })?.data?.message || "تعذر تحميل تعليقات هذه الورشة."}
+          {(error as { data?: AuthValidationErrorResponse })?.data?.message || "تعذر تحميل التقييمات."}
         </div>
       ) : null}
 
-      {!isLoading && !isFetching && !isError && activeShopId && reviews.length === 0 ? (
+      {!isLoading && !isFetching && !isError && reviews.length === 0 ? (
         <div className="rounded-xl border border-dashed border-primary/15 bg-primary-light/40 px-6 py-12 text-center">
-          <p className="text-sm font-medium text-primary">لا توجد تعليقات لهذه الورشة</p>
+          <p className="text-sm font-medium text-primary">لا توجد تعليقات</p>
         </div>
       ) : null}
 
@@ -230,15 +186,15 @@ function AdminReviewsPage() {
               <thead>
                 <tr className="border-b border-primary/10 bg-primary-light/60 text-start text-xs font-semibold uppercase tracking-wide text-primary">
                   <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-6">
-                    العميل
+                    الورشة
                   </th>
                   <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-6">
-                    التقييم
+                    العميل
                   </th>
                   <th scope="col" className="min-w-56 px-4 py-3.5 sm:px-6">
                     التعليق
                   </th>
-                  <th scope="col" className="hidden whitespace-nowrap px-4 py-3.5 md:table-cell sm:px-6">
+                  <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-6">
                     التاريخ
                   </th>
                   <th scope="col" className="whitespace-nowrap px-4 py-3.5 sm:px-6">
@@ -249,14 +205,12 @@ function AdminReviewsPage() {
               <tbody className="divide-y divide-primary/5">
                 {reviews.map((item) => (
                   <tr key={item.id} className="transition hover:bg-primary-light/30">
+                    <td className="whitespace-nowrap px-4 py-4 font-medium text-gray-800 sm:px-6">{item.shop_name || "—"}</td>
                     <td className="whitespace-nowrap px-4 py-4 font-medium text-gray-800 sm:px-6">{item.user.name}</td>
-                    <td className="whitespace-nowrap px-4 py-4 sm:px-6">
-                      <StarRating rating={item.rating} starClassName="size-3.5" />
-                    </td>
                     <td className="max-w-md px-4 py-4 text-gray-600 sm:px-6">
                       <p className="line-clamp-2 whitespace-normal">{item.comment || "بدون تعليق"}</p>
                     </td>
-                    <td className="hidden whitespace-nowrap px-4 py-4 text-gray-600 md:table-cell sm:px-6">{formatReviewDate(item.created_at)}</td>
+                    <td className="whitespace-nowrap px-4 py-4 text-gray-600 sm:px-6">{formatReviewDate(item.created_at)}</td>
                     <td className="whitespace-nowrap px-4 py-4 sm:px-6">
                       <div className="inline-flex items-center overflow-hidden rounded-lg border border-primary/10 bg-white shadow-sm" role="group" aria-label={`إجراءات التعليق ${item.id}`}>
                         <button
@@ -290,7 +244,7 @@ function AdminReviewsPage() {
 
       <ReviewDetailsDialog
         review={selectedReview}
-        shopName={activeShopName}
+        shopName={selectedReview?.shop_name || "—"}
         open={selectedId !== null}
         onClose={() => setSelectedId(null)}
         onDelete={() => {

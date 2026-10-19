@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, Eye, EyeOff, Lock, Mail, X } from "lucide-react";
-import { useLoginClientMutation } from "../auth/authApi";
+import { useGetPlatformStatisticsQuery, useLoginClientMutation } from "../auth/authApi";
 import { extractRoleFromLoginResponse, getPostLoginPath } from "../auth/authRoles";
 import { setCredentials } from "../auth/authSlice";
 import { useAppDispatch } from "../../store/hooks";
@@ -9,11 +9,18 @@ import type { AuthValidationErrorResponse } from "../../types/authTypes";
 import loginImage from "../../assets/login-image.webp";
 import logo from "../../assets/SwiftFix-Logo2.png";
 
+function formatRegisteredShopsLabel(count: number | undefined, isLoading: boolean) {
+  if (isLoading) return "أكثر من … ورشة مسجلة";
+  const value = count != null && Number.isFinite(count) ? Math.trunc(count) : 0;
+  return `أكثر من ${value.toLocaleString("en-US")} ورشة مسجلة`;
+}
+
 function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const [loginClient, { isLoading }] = useLoginClientMutation();
+  const { data: stats, isLoading: isStatsLoading } = useGetPlatformStatisticsQuery();
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [successMessage, setSuccessMessage] = useState((location.state as { successMessage?: string } | null)?.successMessage ?? "");
@@ -48,6 +55,7 @@ function LoginPage() {
             first_name: result.data.first_name,
             last_name: result.data.last_name,
             role,
+            permissions: result.permissions ?? [],
           },
           token: result.token,
         }),
@@ -90,7 +98,7 @@ function LoginPage() {
 
           <div className="absolute right-0 bottom-0 left-0 flex items-center justify-between rounded-b-2xl bg-primary/80 px-6 py-6 ">
             <p className="text-base font-medium text-white">نظام إدارة متكامل لورشتك</p>
-            <p className="text-base font-bold text-secondary">أكثر من 1000 ورشة مسجلة</p>
+            <p className="text-base font-bold text-secondary">{formatRegisteredShopsLabel(stats?.verified_shops_count, isStatsLoading)}</p>
           </div>
         </div>
       </section>

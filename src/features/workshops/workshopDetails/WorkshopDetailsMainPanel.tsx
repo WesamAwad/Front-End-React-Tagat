@@ -66,14 +66,10 @@ export function WorkshopDetailsMainPanel({ workshop }: WorkshopDetailsMainPanelP
 
         <hr className="my-4 border-[#e5e5e5]" />
 
-        <div className="grid grid-cols-2 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-4">
+        <div className="grid grid-cols-3 gap-x-2 gap-y-4 sm:gap-4">
           <div className="px-1 text-center sm:px-2">
             <p className="text-base font-bold text-[#222] sm:text-xl">{workshop.completedRepairs.toLocaleString("ar-SA")}</p>
             <p className="mt-0.5 text-xs text-[#999]">إصلاح مكتمل</p>
-          </div>
-          <div className="px-1 text-center sm:border-e sm:border-[#f0f0f0] sm:px-2">
-            <p className="text-base font-bold text-[#222] sm:text-xl">{workshop.responseTime}</p>
-            <p className="mt-0.5 text-xs text-[#999]">وقت الاستجابة</p>
           </div>
           <div className="px-1 text-center sm:border-e sm:border-[#f0f0f0] sm:px-2">
             <p className="text-base font-bold text-[#222] sm:text-xl">{workshop.minPrice} ₪</p>

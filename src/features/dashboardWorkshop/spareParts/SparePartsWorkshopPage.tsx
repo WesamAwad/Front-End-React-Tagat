@@ -5,9 +5,9 @@ import SuccessToast from "../../../components/SuccessToast";
 import {
   useDeleteShopProductMutation,
   useGetAllShopProductsQuery,
-  useGetBrandByIdQuery,
   useGetBrandsForSelectQuery,
   useGetCategoriesForSelectQuery,
+  useGetBrandByIdQuery,
   useGetCategoryByIdQuery,
   useStoreShopProductMutation,
   useUpdateShopProductMutation,
@@ -26,18 +26,7 @@ const EMPTY_DEVICES: BrandDevice[] = [];
 const EMPTY_PRODUCTS: CategoryProduct[] = [];
 const EMPTY_PARTS: SparePart[] = [];
 
-const sparePartFormKeys = new Set<keyof SparePartFormValues>([
-  "company",
-  "product_id",
-  "category_id",
-  "device_model_id",
-  "device_model_name",
-  "description",
-  "price",
-  "quantity",
-  "image",
-  "status",
-]);
+const sparePartFormKeys = new Set<keyof SparePartFormValues>(["company", "product_id", "category_id", "device_model_id", "device_model_name", "description", "price", "quantity", "image", "status"]);
 
 function normalizeApiErrorKey(key: string): keyof SparePartFormValues | null {
   const rootKey = key.split(".")[0];
@@ -125,7 +114,7 @@ function SparePartsWorkshopPage() {
     skip: !formMode || !formValues.company,
   });
 
-  const devices = brandDetailsData?.data?.devices ?? EMPTY_DEVICES;
+  const devices = formValues.company ? (brandDetailsData?.data?.devices ?? EMPTY_DEVICES) : EMPTY_DEVICES;
 
   const {
     data: categoryDetailsData,
@@ -136,7 +125,7 @@ function SparePartsWorkshopPage() {
     skip: !formMode || !formValues.category_id,
   });
 
-  const products = categoryDetailsData?.data?.products ?? EMPTY_PRODUCTS;
+  const products = formValues.category_id ? (categoryDetailsData?.data?.products ?? EMPTY_PRODUCTS) : EMPTY_PRODUCTS;
 
   const lowStockCount = parts.filter((part) => part.quantity > 0 && part.quantity <= 5).length;
   const outOfStockCount = parts.filter((part) => part.quantity === 0).length;

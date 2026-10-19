@@ -78,7 +78,7 @@ export function mapPublicShopDetailsToWorkshopDetails(shop: PublicShopDetails): 
     isOpen,
     closesAt: deriveClosesAt(shop.working_hours),
     distance: "—",
-    completedRepairs: 0,
+    completedRepairs: shop.completed_repair_requests_count,
     responseTime: "—",
     minPrice,
     deviceTypesCount: shop.services.length,

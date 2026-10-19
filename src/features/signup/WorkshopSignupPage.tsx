@@ -2,10 +2,21 @@ import { useState, type ChangeEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BadgeCheck, ChevronDown, FileImage, IdCard, Mail, Upload, UserRound } from "lucide-react";
 import { PhoneInput, defaultCountries, parseCountry } from "react-international-phone";
-import { useGetAllCountriesQuery, useGetAllServicesQuery, useRegisterWorkShopMutation } from "../auth/authApi";
+import {
+  useGetAllCountriesQuery,
+  useGetAllServicesQuery,
+  useGetPlatformStatisticsQuery,
+  useRegisterWorkShopMutation,
+} from "../auth/authApi";
 import type { AuthValidationErrorResponse } from "../../types/authTypes";
 import signupImage from "../../assets/signup-image.webp";
 import logo from "../../assets/SwiftFix-Logo2.png";
+
+function formatRegisteredShopsLabel(count: number | undefined, isLoading: boolean) {
+  if (isLoading) return "أكثر من … ورشة مسجلة";
+  const value = count != null && Number.isFinite(count) ? Math.trunc(count) : 0;
+  return `أكثر من ${value.toLocaleString("en-US")} ورشة مسجلة`;
+}
 
 const arabicCountries = defaultCountries.filter((country) => {
   const { iso2 } = parseCountry(country);
@@ -29,6 +40,7 @@ function WorkshopSignupPage() {
   const [registerWorkShop, { isLoading }] = useRegisterWorkShopMutation();
   const { data: countriesData, isLoading: isCountriesLoading, isError: isCountriesError } = useGetAllCountriesQuery();
   const { data: servicesData, isLoading: isServicesLoading, isError: isServicesError } = useGetAllServicesQuery();
+  const { data: stats, isLoading: isStatsLoading } = useGetPlatformStatisticsQuery();
 
   const [idImageName, setIdImageName] = useState("");
   const [licenseImageName, setLicenseImageName] = useState("");
@@ -128,7 +140,7 @@ function WorkshopSignupPage() {
 
             <div className="absolute right-0 bottom-0 left-0 flex items-center justify-between rounded-b-2xl bg-primary/80 px-6 py-6">
               <p className="text-base font-medium text-white">نظام إدارة متكامل لورشتك</p>
-              <p className="text-base font-bold text-secondary">أكثر من 1000 ورشة مسجلة</p>
+              <p className="text-base font-bold text-secondary">{formatRegisteredShopsLabel(stats?.verified_shops_count, isStatsLoading)}</p>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Search, SlidersHorizontal } from "lucide-react";
-import { useGetCitiesAllQuery, useGetAllServicesQuery, useGetProductsAllQuery } from "../../auth/authApi";
+import { useGetCitiesForSelectQuery, useGetAllServicesQuery, useGetProductsForSelectQuery } from "../../auth/authApi";
 import type { GetAllPublicShopsParams } from "../../../types/authTypes";
 
 export type WorkshopsUiFilters = GetAllPublicShopsParams & {
@@ -97,9 +97,9 @@ export function WorkshopsFiltersSidebar({ compact = false, showHeader = true, cl
   const [productQuery, setProductQuery] = useState("");
   const [priceDraft, setPriceDraft] = useState(() => (filters.price != null ? String(filters.price) : ""));
 
-  const { data: citiesData, isLoading: isCitiesLoading, isError: isCitiesError, isFetching: isCitiesFetching } = useGetCitiesAllQuery();
+  const { data: citiesData, isLoading: isCitiesLoading, isError: isCitiesError, isFetching: isCitiesFetching } = useGetCitiesForSelectQuery();
   const { data: servicesData, isLoading: isServicesLoading, isError: isServicesError, isFetching: isServicesFetching } = useGetAllServicesQuery();
-  const { data: productsData, isLoading: isProductsLoading, isError: isProductsError, isFetching: isProductsFetching } = useGetProductsAllQuery();
+  const { data: productsData, isLoading: isProductsLoading, isError: isProductsError, isFetching: isProductsFetching } = useGetProductsForSelectQuery();
 
   const cities = citiesData?.data ?? EMPTY_CITIES;
   const services = servicesData?.data ?? EMPTY_SERVICES;

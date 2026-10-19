@@ -22,7 +22,6 @@ import WorkshopSignupPage from "../features/signup/WorkshopSignupPage";
 import HomeWorkshopPage from "../features/dashboardWorkshop/pages/HomeWorkshopPage";
 import OrdersWorkshopPage from "../features/dashboardWorkshop/pages/OrdersWorkshopPage";
 import SparePartsWorkshopPage from "../features/dashboardWorkshop/spareParts/SparePartsWorkshopPage";
-import SettingsWorkshopPage from "../features/dashboardWorkshop/pages/SettingsWorkshopPage";
 import SpecsWorkshopPage from "../features/dashboardWorkshop/specification/SpecsWorkshopPage";
 import ProfilePage from "../features/dashboardWorkshop/pages/ProfilePage";
 import ReviewsWorkshopPage from "../features/dashboardWorkshop/pages/ReviewsWorkshopPage";
@@ -165,10 +164,6 @@ export const router = createBrowserRouter([
           {
             path: "specs",
             element: <SpecsWorkshopPage />,
-          },
-          {
-            path: "settings",
-            element: <SettingsWorkshopPage />,
           },
           {
             path: "profile",
