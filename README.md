@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# SwiftFix
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**SwiftFix** منصة رقمية تربط أصحاب الأجهزة الإلكترونية المعطوبة بورش إصلاح موثّقة — بشفافية في الأسعار وتجربة واضحة من طلب الإصلاح حتى اكتماله.
 
-Currently, two official plugins are available:
+## الفكرة
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+بدل البحث العشوائي عن ورشة، يختار العميل ورشة مناسبة حسب المدينة والخدمة والتقييم، ويرسل طلب إصلاح مباشرة. الورشة تدير الطلبات والمنتجات من لوحتها، والأدمن يشرف على التوثيق والشكاوى وإعدادات المنصة.
 
-## React Compiler
+## لمن المنصة؟
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| الطرف | ماذا يفعل؟ |
+| --- | --- |
+| **العميل** | يتصفح الورش، يرسل طلب إصلاح، يتابع الحجوزات والمفضلة، ويدير ملفه الشخصي |
+| **صاحب الورشة** | يستقبل الطلبات، يدير التقييمات وقطع الغيار ومواصفات الورشة، ويعرض صفحة الورشة العامة |
+| **الأدمن** | يراجع طلبات تسجيل الورش، يدير الدول والمدن والخدمات والمنتجات، ويتابع الشكاوى والتقييمات |
 
-## Expanding the ESLint configuration
+## أبرز المزايا
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- تصفح الورش مع فلاتر وخريطة
+- طلبات إصلاح وحجوزات للعميل
+- لوحة تحكم لصاحب الورشة (طلبات، تقييمات، قطع غيار، ملف الورشة)
+- لوحة تحكم للأدمن (توثيق، شكاوى، إعدادات المنصة)
+- واجهة عربية (RTL) وتجربة موحّدة عبر الموقع
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## التقنيات (هذا المستودع)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+واجهة أمامية مبنية بـ:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- React + TypeScript + Vite
+- Redux Toolkit (RTK Query)
+- Tailwind CSS
+- React Router
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+ثم افتح العنوان الذي يظهر في الطرفية (عادةً `http://localhost:5173`).
