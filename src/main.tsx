@@ -5,8 +5,6 @@ import { Provider } from "react-redux";
 import { store } from "./store/index.ts";
 import { RouterProvider } from "react-router-dom";
 import { router } from "./routes/AppRoutes";
-/** Reverb / Laravel Echo — NewShopOwnerVerificationEvent (public channel) */
-import "./services/listenNewShopOwnerVerification";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

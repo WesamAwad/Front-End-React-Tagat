@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 import { ClipboardCheck, Boxes, Eye, Tags, Smartphone, Building2, ClipboardList, Flag, MapPin, Globe, Home, LayoutDashboard, ListPlus, MessageCircle, Shield, Star, Store, Package, UserRound, UserX, Wrench, X } from "lucide-react";
@@ -7,8 +6,6 @@ import { useAppSelector } from "../../../store/hooks";
 import { useGetAllComplaintsQuery, useGetAllRepairRequestsQuery, useGetShopOwnerVerificationDataQuery } from "../../auth/authApi";
 import { getPostLoginPath } from "../../auth/authRoles";
 import { hasPermission, type AppPermission } from "../../auth/permissions";
-import { SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, type ShopRepairRequestCreatedDetail } from "../../../services/listenShopRepairRequests";
-import { NEW_SHOP_OWNER_VERIFICATION_DOM_EVENT, type NewShopOwnerVerificationDomDetail } from "../../../services/listenNewShopOwnerVerification";
 
 type NavItem = {
   to: string;
@@ -54,14 +51,12 @@ function SidebarNav({
   pendingVerifications,
   pendingRepairs,
   pendingComplaints,
-  liveVerificationId,
 }: {
   items: NavItem[];
   onNavigate?: () => void;
   pendingVerifications: number;
   pendingRepairs: number;
   pendingComplaints: number;
-  liveVerificationId: string | number | null;
 }) {
   const location = useLocation();
 
@@ -70,7 +65,6 @@ function SidebarNav({
       {items.map(({ to, label, icon: Icon, end, disabled, badgeKey }) => {
         const isRequestsItem = badgeKey === "pendingVerifications";
         const badgeCount = isRequestsItem ? pendingVerifications : 0;
-        const showLiveId = isRequestsItem && liveVerificationId != null;
         const repairCount = badgeKey === "pendingRepairs" ? pendingRepairs : 0;
         const complaintCount = badgeKey === "pendingComplaints" ? pendingComplaints : 0;
         const iconBadgeCount = repairCount || complaintCount;
@@ -104,11 +98,7 @@ function SidebarNav({
               ) : null}
             </span>
             <span className="min-w-0 flex-1 truncate">{label}</span>
-            {showLiveId ? (
-              <span className={badgeClassName} aria-label={`إشعار طلب تسجيل رقم ${liveVerificationId}`} title="طلب تسجيل جديد">
-                #{liveVerificationId}
-              </span>
-            ) : badgeCount > 0 ? (
+            {badgeCount > 0 ? (
               <span className={badgeClassName} aria-label={`${badgeCount} طلب قيد المراجعة`}>
                 {badgeCount > 99 ? "99+" : badgeCount}
               </span>
@@ -139,45 +129,8 @@ export function Sidebar({ isOpen, displayName, initials, profilePath, onClose }:
   const { data: repairRequests } = useGetAllRepairRequestsQuery(undefined, { skip: !showsBadge("pendingRepairs") });
   const { data: complaintsData } = useGetAllComplaintsQuery(undefined, { skip: !showsBadge("pendingComplaints") });
   const pendingVerifications = (data?.data ?? []).filter((request) => request.status === "pending").length;
-  const loadedRequests = repairRequests?.data ?? [];
-  const pendingRepairIds = loadedRequests.filter((request) => request.status.trim().toLowerCase() === "pending").map((request) => request.id);
-  const knownRepairIds = new Set(loadedRequests.map((request) => request.id));
-  const [socketRepairIds, setSocketRepairIds] = useState<string[]>([]);
-  const unseenSocketRepairs = socketRepairIds.filter((id) => !knownRepairIds.has(id));
-  const pendingRepairs = pendingRepairIds.length + unseenSocketRepairs.length;
+  const pendingRepairs = (repairRequests?.data ?? []).filter((request) => request.status.trim().toLowerCase() === "pending").length;
   const pendingComplaints = (complaintsData?.data ?? []).filter((complaint) => complaint.status.trim().toLowerCase() === "pending").length;
-  const [liveVerificationId, setLiveVerificationId] = useState<string | number | null>(null);
-
-  useEffect(() => {
-    const handleLiveVerification = (event: Event) => {
-      const detail = (event as CustomEvent<NewShopOwnerVerificationDomDetail>).detail;
-      if (detail?.verificationId == null || detail.verificationId === "") return;
-      setLiveVerificationId(detail.verificationId);
-    };
-
-    const handleRepairRequestCreated = (event: Event) => {
-      const detail = (event as CustomEvent<ShopRepairRequestCreatedDetail>).detail;
-      const repairRequestId = detail?.repairRequestId || `live-${Date.now()}`;
-      setSocketRepairIds((current) => (current.includes(repairRequestId) ? current : [...current, repairRequestId]));
-    };
-
-    window.addEventListener(NEW_SHOP_OWNER_VERIFICATION_DOM_EVENT, handleLiveVerification);
-    window.addEventListener(SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, handleRepairRequestCreated);
-    return () => {
-      window.removeEventListener(NEW_SHOP_OWNER_VERIFICATION_DOM_EVENT, handleLiveVerification);
-      window.removeEventListener(SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, handleRepairRequestCreated);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (liveVerificationId == null) return;
-
-    const timeoutId = window.setTimeout(() => {
-      setLiveVerificationId(null);
-    }, 8000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [liveVerificationId]);
 
   return (
     <aside
@@ -214,7 +167,6 @@ export function Sidebar({ isOpen, displayName, initials, profilePath, onClose }:
           pendingVerifications={pendingVerifications}
           pendingRepairs={pendingRepairs}
           pendingComplaints={pendingComplaints}
-          liveVerificationId={liveVerificationId}
         />
       </div>
 

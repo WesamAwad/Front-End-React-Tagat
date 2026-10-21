@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import { Bell, X } from "lucide-react";
+import { useState } from "react";
 import { ConfirmDialog } from "../../../components/ConfirmDialog";
 import SuccessToast from "../../../components/SuccessToast";
-import { SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, type ShopRepairRequestCreatedDetail } from "../../../services/listenShopRepairRequests";
 import type { AuthValidationErrorResponse, RepairRequest } from "../../../types/authTypes";
 import {
   useApproveRepairRequestMutation,
@@ -17,7 +15,6 @@ import { OrdersTable } from "./OrdersTable";
 const EMPTY_REQUESTS: RepairRequest[] = [];
 
 function OrdersWorkshopPage() {
-  const [liveNotice, setLiveNotice] = useState<ShopRepairRequestCreatedDetail | null>(null);
   const { data, isLoading, isFetching, isError, refetch } = useGetAllRepairRequestsQuery();
   const [approveRepairRequest, { isLoading: isAccepting }] = useApproveRepairRequestMutation();
   const [rejectRepairRequest, { isLoading: isRejecting }] = useRejectRepairRequestMutation();
@@ -37,26 +34,6 @@ function OrdersWorkshopPage() {
   const [deleteError, setDeleteError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => {
-    const handleCreated = (event: Event) => {
-      const detail = (event as CustomEvent<ShopRepairRequestCreatedDetail>).detail;
-      setLiveNotice({
-        message: detail?.message || "لديك طلب صيانة جديد.",
-        repairRequestId: detail?.repairRequestId || "",
-      });
-    };
-
-    window.addEventListener(SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, handleCreated);
-    return () => window.removeEventListener(SHOP_REPAIR_REQUEST_CREATED_DOM_EVENT, handleCreated);
-  }, []);
-
-  useEffect(() => {
-    if (!liveNotice) return;
-
-    const timeoutId = window.setTimeout(() => setLiveNotice(null), 8000);
-    return () => window.clearTimeout(timeoutId);
-  }, [liveNotice]);
 
   const confirmAccept = async () => {
     if (!acceptTarget || isAccepting) return;
@@ -143,23 +120,6 @@ function OrdersWorkshopPage() {
         </div>
       </section>
 
-      {liveNotice ? (
-        <div className="pointer-events-none fixed top-4 right-4 z-2000 w-[min(100%-2rem,22rem)]">
-          <div role="status" aria-live="polite" className="pointer-events-auto flex items-start gap-3 rounded-xl border border-amber-200 bg-white p-4 shadow-lg">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-              <Bell className="size-5 text-amber-700" aria-hidden="true" />
-            </div>
-            <div className="min-w-0 flex-1 text-start">
-              <p className="text-sm font-bold text-primary">طلب إصلاح جديد</p>
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">{liveNotice.message}</p>
-            </div>
-            <button type="button" onClick={() => setLiveNotice(null)} className="rounded-lg p-1 text-gray-500 transition hover:bg-primary-light hover:text-primary" aria-label="إغلاق الإشعار">
-              <X className="size-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       {isLoading ? (
         <div className="space-y-3 rounded-xl border border-primary/10 bg-white p-6 shadow-sm" aria-busy="true">
           <p className="text-sm text-gray-500">جاري تحميل الطلبات...</p>
@@ -182,7 +142,7 @@ function OrdersWorkshopPage() {
       ) : (
         <OrdersTable
           requests={requests}
-          highlightedRequestId={liveNotice?.repairRequestId || ""}
+          highlightedRequestId=""
           onAccept={(id) => {
             setAcceptError("");
             setAcceptTarget(requests.find((request) => request.id === id) ?? null);
