@@ -29,7 +29,7 @@ export async function sendMessage(messages: AiChatMessage[]): Promise<ShopRecomm
 
   const token = localStorage.getItem("token");
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/ai/shop-recommendations`, {
-    method: "GET",
+    method: "POST",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
