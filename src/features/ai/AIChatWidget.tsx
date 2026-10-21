@@ -33,7 +33,7 @@ export function AIChatWidget() {
   const launcherRef = useRef<HTMLButtonElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
-  const { messages, status, isBusy, send, retry, reset } = useAIChat();
+  const { messages, status, errorMessage, isBusy, send, retry, reset } = useAIChat();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [showTooltip, setShowTooltip] = useState(() => !localStorage.getItem(TOOLTIP_KEY));
@@ -207,7 +207,7 @@ export function AIChatWidget() {
 
             {status === "error" ? (
               <div className="self-start rounded-2xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700" role="alert">
-                <p>تعذر الحصول على الرد. حاول مرة أخرى.</p>
+                <p>{errorMessage || "تعذر الحصول على الرد. حاول مرة أخرى."}</p>
                 <button
                   type="button"
                   onClick={retry}

@@ -20,12 +20,16 @@ export type ShopRecommendationReply = {
 };
 
 export async function sendMessage(messages: AiChatMessage[]): Promise<ShopRecommendationReply> {
-  const prompt = [...messages].reverse().find((message) => message.role === "user")?.content.trim() ?? "";
+  const prompt =
+    [...messages]
+      .reverse()
+      .find((message) => message.role === "user")
+      ?.content.trim() ?? "";
   if (!prompt) return { content: "", recommendations: [] };
 
   const token = localStorage.getItem("token");
   const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/ai/shop-recommendations`, {
-    method: "POST",
+    method: "GET",
     headers: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -35,7 +39,16 @@ export async function sendMessage(messages: AiChatMessage[]): Promise<ShopRecomm
   });
 
   if (!response.ok) {
-    throw new Error("AI request failed");
+    let apiMessage = "";
+    try {
+      const payload: unknown = await response.json();
+      if (payload && typeof payload === "object") {
+        apiMessage = String((payload as { message?: unknown }).message ?? "").trim();
+      }
+    } catch {
+      // Response body may be empty or non-JSON.
+    }
+    throw new Error(apiMessage || "تعذر الحصول على الرد. حاول مرة أخرى.");
   }
 
   return normalizeShopRecommendationReply(await response.json());

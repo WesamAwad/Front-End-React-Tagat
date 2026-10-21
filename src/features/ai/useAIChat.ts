@@ -39,6 +39,7 @@ function loadMessages() {
 export function useAIChat() {
   const [messages, setMessages] = useState<AiChatMessage[]>(loadMessages);
   const [status, setStatus] = useState<AiChatStatus>("idle");
+  const [errorMessage, setErrorMessage] = useState("");
   const generation = useRef(0);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export function useAIChat() {
 
   async function requestReply(history: AiChatMessage[], runId: number) {
     setStatus("sending");
+    setErrorMessage("");
 
     try {
       const reply = await sendMessage(history);
@@ -68,8 +70,9 @@ export function useAIChat() {
         },
       ]);
       setStatus("idle");
-    } catch {
+    } catch (error) {
       if (generation.current !== runId) return;
+      setErrorMessage(error instanceof Error ? error.message : "تعذر الحصول على الرد. حاول مرة أخرى.");
       setStatus("error");
     }
   }
@@ -94,12 +97,14 @@ export function useAIChat() {
     generation.current += 1;
     setMessages([]);
     setStatus("idle");
+    setErrorMessage("");
     sessionStorage.removeItem(STORAGE_KEY);
   }
 
   return {
     messages,
     status,
+    errorMessage,
     isBusy: status === "sending",
     send,
     retry,
