@@ -1501,14 +1501,7 @@ function normalizeShopOwnerVerificationServices(value: unknown): string[] {
 
 function resolveShopOwnerMediaPath(path: string | null | undefined): string | null {
   if (path == null || path === "") return null;
-
-  const normalizedPath = String(path).replace(/^\/+/, "");
-  if (normalizedPath.startsWith("http://") || normalizedPath.startsWith("https://") || normalizedPath.startsWith("blob:") || normalizedPath.startsWith("data:")) {
-    return normalizedPath;
-  }
-
-  const withStorage = normalizedPath.startsWith("storage/") ? normalizedPath : `storage/${normalizedPath}`;
-  return resolveMediaPath(withStorage) || null;
+  return resolveMediaPath(path) || null;
 }
 
 function normalizeShopOwnerVerificationRequest(item: unknown): ShopOwnerVerificationRequest | null {

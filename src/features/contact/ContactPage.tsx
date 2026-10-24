@@ -17,21 +17,21 @@ const CONTACT_INFO = [
   {
     id: "phone",
     label: "اتصل بنا",
-    value: "9200 12345 (الرقم الموحد)",
+    value: "+970 59 847 3921",
     icon: phoneIcon,
-    href: "tel:920012345",
+    href: "tel:+970598473921",
   },
   {
     id: "email",
     label: "البريد الإلكتروني",
-    value: "support@swiftfix.sa",
+    value: "support@swiftfix.com",
     icon: mailIcon,
-    href: "mailto:support@swiftfix.sa",
+    href: "mailto:support@swiftfix.com",
   },
   {
     id: "location",
     label: "الموقع الرئيسي",
-    value: "طريق الملك فهد، حي الصحافة، الرياض",
+    value: "فلسطين",
     icon: mapPinIcon,
   },
   {
@@ -272,7 +272,7 @@ function ContactPage() {
             </div>
 
             <div className="overflow-hidden rounded-xl border border-[#e5e7eb]">
-              <img src={mapImg} alt="خريطة مواقع سويفت فيكس في الرياض" className="h-68.5 w-full object-cover" />
+              <img src={mapImg} alt="خريطة مواقع سويفت فيكس في فلسطين" className="h-68.5 w-full object-cover" />
             </div>
           </aside>
         </div>

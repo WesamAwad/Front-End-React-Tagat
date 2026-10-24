@@ -200,7 +200,7 @@ export function AIChatWidget() {
 
             {status === "sending" ? (
               <p className="self-start rounded-2xl rounded-es-sm bg-primary-light px-3 py-2.5 text-sm text-primary/70" role="status">
-                جارٍ البحث عن الورش المناسبة
+                جاري الرد
                 <span aria-hidden="true">...</span>
               </p>
             ) : null}
